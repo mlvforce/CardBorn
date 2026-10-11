@@ -12,6 +12,18 @@ EditorBuildSettings:
     path: Assets/Scenes/HubScene.unity
     guid: 9efaac1fa500103418f96a5ed6a37573
   - enabled: 1
+    path: Assets/Scenes/MonsterCreationScene.unity
+    guid: 0801f6fd5bc4e3848b4833ff832b2724
+  - enabled: 1
+    path: Assets/Scenes/LobbyScene.unity
+    guid: 2dcabce74b9770443a1a4dceccd3a82a
+  - enabled: 1
+    path: Assets/Scenes/DeckBuilderScene.unity
+    guid: d92b06486e9b12744a6c9ba63011c2d8
+  - enabled: 1
+    path: Assets/Scenes/BattleScene.unity
+    guid: 0f9df68c2be4db44faf80b72fd071152
+  - enabled: 1
     path: Assets/Scenes/AssetTestScene.unity
     guid: 99c9720ab356a0642a771bea13969a05
   m_configObjects:
