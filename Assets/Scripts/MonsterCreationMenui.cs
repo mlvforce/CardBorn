@@ -8,10 +8,6 @@ public class MonsterCreation : MonoBehaviour
         SceneManager.LoadScene("MainMenuScene");
 
     }
-    public void HeadButtons() // code for the "monster" Head sections
-    {
-
-    }
-
+  
 
 }
