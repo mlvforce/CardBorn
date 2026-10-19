@@ -3,18 +3,17 @@ using UnityEngine.SceneManagement;
 
 public class MonsterCreationProgress : MonoBehaviour
 {
-    // =========================
+    
     // CREATION UI SCREENS
-    // =========================
+   
 
     [Header("Creation Screens")]
     [SerializeField] private GameObject appearanceUI;
     [SerializeField] private GameObject statsUI;
 
 
-    // =========================
+    
     // CAMERA SETTINGS
-    // =========================
 
     [Header("Camera")]
     [SerializeField] private Camera mainCamera;
@@ -23,21 +22,16 @@ public class MonsterCreationProgress : MonoBehaviour
     [SerializeField] private Transform statsCameraPosition;
 
 
-    // =========================
+    
     // CURRENT CREATION STAGE
-    // =========================
-
-    // 0 = Appearance
-    // 1 = Stats
-    // 2 = Moves (later)
-    // 3 = Finish (later)
+    
 
     private int currentStage = 0;
 
 
-    // =========================
+    
     // START
-    // =========================
+    
 
     private void Start()
     {
@@ -47,9 +41,9 @@ public class MonsterCreationProgress : MonoBehaviour
     }
 
 
-    // =========================
+   
     // NEXT BUTTON
-    // =========================
+  
 
     public void NextStage()
     {
@@ -73,14 +67,13 @@ public class MonsterCreationProgress : MonoBehaviour
     }
 
 
-    // =========================
+    
     // BACK BUTTON
-    // =========================
+   
 
     public void PreviousStage()
     {
-        // If we're on Appearance,
-        // Back returns to the Hub.
+      
         if (currentStage == 0)
         {
             SceneManager.LoadScene("HubScene");
@@ -106,17 +99,16 @@ public class MonsterCreationProgress : MonoBehaviour
     }
 
 
-    // =========================
+  
     // CHANGE CREATION STAGE
-    // =========================
+    
 
     private void ShowStage(int stage)
     {
         currentStage = stage;
 
-        // -------------------------
         // APPEARANCE
-        // -------------------------
+    
 
         if (currentStage == 0)
         {
@@ -126,9 +118,7 @@ public class MonsterCreationProgress : MonoBehaviour
             MoveCamera(appearanceCameraPosition);
         }
 
-        // -------------------------
-        // STATS
-        // -------------------------
+      
 
         else if (currentStage == 1)
         {
@@ -138,21 +128,20 @@ public class MonsterCreationProgress : MonoBehaviour
             MoveCamera(statsCameraPosition);
         }
 
-        // -------------------------
+     
         // MOVES
-        // -------------------------
+      
 
         else if (currentStage == 2)
         {
             appearanceUI.SetActive(false);
             statsUI.SetActive(false);
 
-            // Move UI will be added later.
+            
         }
 
-        // -------------------------
         // FINISH
-        // -------------------------
+      
 
         else if (currentStage == 3)
         {
@@ -164,9 +153,9 @@ public class MonsterCreationProgress : MonoBehaviour
     }
 
 
-    // =========================
+    
     // CAMERA MOVEMENT
-    // =========================
+  
 
     private void MoveCamera(Transform targetPosition)
     {
