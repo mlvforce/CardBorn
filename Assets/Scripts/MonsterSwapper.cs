@@ -1,57 +1,77 @@
 using UnityEngine;
 using TMPro;
 
-public class MonsterPartSwapper : MonoBehaviour
+public class MonsterSwapper : MonoBehaviour
 {
-   
+    // DATA CLASSES
+
+    [System.Serializable]
+    public class HeadPart
+    {
+        public GameObject head;
+
+        public Transform neckAttachPoint;
+    }
+
+    [System.Serializable]
+    public class BodyPart
+    {
+        public GameObject body;
+
+        public Transform headSocket;
+
+        public Transform legsSocket;
+    }
+
+    [System.Serializable]
+    public class LegsPart
+    {
+        public GameObject legs;
+
+        public Transform hipAttachPoint;
+    }
+
+
     // MONSTER PARTS
-   
 
     [Header("Available Monster Parts")]
-    [SerializeField] private GameObject[] heads;
-    [SerializeField] private GameObject[] bodies;
-    [SerializeField] private GameObject[] legs;
+
+    [SerializeField] private HeadPart[] heads;
+    [SerializeField] private BodyPart[] bodies;
+    [SerializeField] private LegsPart[] legs;
 
 
-   
     // UI TEXT
-    
 
     [Header("UI Text")]
+
     [SerializeField] private TMP_Text headNumberText;
     [SerializeField] private TMP_Text bodyNumberText;
     [SerializeField] private TMP_Text legNumberText;
 
 
+    // CURRENT SELECTION
     
-    // CURRENT SELECTED PARTS
-  
 
     private int currentHead = 0;
     private int currentBody = 0;
     private int currentLegs = 0;
 
 
-    
     // START
-   
 
     private void Start()
     {
-        // Start with the first part in each list.
-        currentHead = 0;
-        currentBody = 0;
-        currentLegs = 0;
+        UpdateVisibleParts();
 
-        RefreshMonster();
+        SnapMonsterTogether();
 
-        Debug.Log("Monster Part Swapper started.");
+        
+        UpdateUI();
     }
 
 
-    
     // HEAD BUTTONS
-    
 
     public void NextHead()
     {
@@ -60,17 +80,12 @@ public class MonsterPartSwapper : MonoBehaviour
 
         currentHead++;
 
-        // If we go past the final head,
-        // loop back to the first one.
         if (currentHead >= heads.Length)
-        {
             currentHead = 0;
-        }
 
-        RefreshHeads();
+        UpdateVisibleParts();
+        SnapMonsterTogether();
         UpdateUI();
-
-        Debug.Log("Selected Head: " + (currentHead + 1));
     }
 
 
@@ -81,23 +96,16 @@ public class MonsterPartSwapper : MonoBehaviour
 
         currentHead--;
 
-        // If we go below the first head,
-        // loop around to the last one.
         if (currentHead < 0)
-        {
             currentHead = heads.Length - 1;
-        }
 
-        RefreshHeads();
+        UpdateVisibleParts();
+        SnapMonsterTogether();
         UpdateUI();
-
-        Debug.Log("Selected Head: " + (currentHead + 1));
     }
 
 
-   
     // BODY BUTTONS
-    
 
     public void NextBody()
     {
@@ -107,14 +115,14 @@ public class MonsterPartSwapper : MonoBehaviour
         currentBody++;
 
         if (currentBody >= bodies.Length)
-        {
             currentBody = 0;
-        }
 
-        RefreshBodies();
+        UpdateVisibleParts();
+
+        
+        SnapMonsterTogether();
+
         UpdateUI();
-
-        Debug.Log("Selected Body: " + (currentBody + 1));
     }
 
 
@@ -126,20 +134,15 @@ public class MonsterPartSwapper : MonoBehaviour
         currentBody--;
 
         if (currentBody < 0)
-        {
             currentBody = bodies.Length - 1;
-        }
 
-        RefreshBodies();
+        UpdateVisibleParts();
+        SnapMonsterTogether();
         UpdateUI();
-
-        Debug.Log("Selected Body: " + (currentBody + 1));
     }
 
 
-    
     // LEGS BUTTONS
-    
 
     public void NextLegs()
     {
@@ -149,14 +152,11 @@ public class MonsterPartSwapper : MonoBehaviour
         currentLegs++;
 
         if (currentLegs >= legs.Length)
-        {
             currentLegs = 0;
-        }
 
-        RefreshLegs();
+        UpdateVisibleParts();
+        SnapMonsterTogether();
         UpdateUI();
-
-        Debug.Log("Selected Legs: " + (currentLegs + 1));
     }
 
 
@@ -168,160 +168,206 @@ public class MonsterPartSwapper : MonoBehaviour
         currentLegs--;
 
         if (currentLegs < 0)
-        {
             currentLegs = legs.Length - 1;
-        }
 
-        RefreshLegs();
+        UpdateVisibleParts();
+        SnapMonsterTogether();
         UpdateUI();
-
-        Debug.Log("Selected Legs: " + (currentLegs + 1));
     }
 
 
-    
-    // RANDOMISE BUTTON
-   
+    // RANDOMISE
 
     public void RandomiseMonster()
     {
-        // Pick a random head.
         if (heads != null && heads.Length > 0)
-        {
             currentHead = Random.Range(0, heads.Length);
-        }
 
-        // Pick a random body.
         if (bodies != null && bodies.Length > 0)
-        {
             currentBody = Random.Range(0, bodies.Length);
-        }
 
-        // Pick random legs.
         if (legs != null && legs.Length > 0)
-        {
             currentLegs = Random.Range(0, legs.Length);
-        }
 
-        RefreshMonster();
-
-        Debug.Log(
-            "Monster Randomised! " +
-            "Head: " + (currentHead + 1) +
-            " | Body: " + (currentBody + 1) +
-            " | Legs: " + (currentLegs + 1)
-        );
-    }
-
-
-   
-    // REFRESH WHOLE MONSTER
-   
-
-    private void RefreshMonster()
-    {
-        RefreshHeads();
-        RefreshBodies();
-        RefreshLegs();
-
+        UpdateVisibleParts();
+        SnapMonsterTogether();
         UpdateUI();
     }
 
 
-   
-    // REFRESH INDIVIDUAL PART TYPES
-
-    private void RefreshHeads()
-    {
-        SetActivePart(heads, currentHead);
-    }
-
-
-    private void RefreshBodies()
-    {
-        SetActivePart(bodies, currentBody);
-    }
-
-
-    private void RefreshLegs()
-    {
-        SetActivePart(legs, currentLegs);
-    }
-
-
-    
     // ENABLE / DISABLE PARTS
-  
 
-    private void SetActivePart(GameObject[] parts, int selectedIndex)
+    private void UpdateVisibleParts()
     {
-        if (parts == null || parts.Length == 0)
-            return;
-
-        for (int i = 0; i < parts.Length; i++)
+        // HEADS
+        for (int i = 0; i < heads.Length; i++)
         {
-            // Skip any empty Inspector slots.
-            if (parts[i] == null)
-                continue;
-
-            // Only the currently selected part should be enabled.
-            if (i == selectedIndex)
+            if (heads[i].head != null)
             {
-                parts[i].SetActive(true);
-            }
-            else
-            {
-                parts[i].SetActive(false);
-            }
-        }
-    }
-
-
-    
-    // UPDATE NUMBER DISPLAY
-   
-
-    private void UpdateUI()
-    {
-        // HEAD
-        if (headNumberText != null)
-        {
-            if (heads != null && heads.Length > 0)
-            {
-                headNumberText.text = (currentHead + 1).ToString();
-            }
-            else
-            {
-                headNumberText.text = "0";
+                heads[i].head.SetActive(i == currentHead);
             }
         }
 
 
-        // BODY
-        if (bodyNumberText != null)
+        // BODIES
+        for (int i = 0; i < bodies.Length; i++)
         {
-            if (bodies != null && bodies.Length > 0)
+            if (bodies[i].body != null)
             {
-                bodyNumberText.text = (currentBody + 1).ToString();
-            }
-            else
-            {
-                bodyNumberText.text = "0";
+                bodies[i].body.SetActive(i == currentBody);
             }
         }
 
 
         // LEGS
-        if (legNumberText != null)
+        for (int i = 0; i < legs.Length; i++)
         {
-            if (legs != null && legs.Length > 0)
+            if (legs[i].legs != null)
             {
-                legNumberText.text = (currentLegs + 1).ToString();
-            }
-            else
-            {
-                legNumberText.text = "0";
+                legs[i].legs.SetActive(i == currentLegs);
             }
         }
+    }
+
+
+    // SNAP COMPLETE MONSTER TOGETHER
+
+    private void SnapMonsterTogether()
+    {
+        if (heads.Length == 0 ||
+            bodies.Length == 0 ||
+            legs.Length == 0)
+        {
+            return;
+        }
+
+        BodyPart selectedBody = bodies[currentBody];
+        HeadPart selectedHead = heads[currentHead];
+        LegsPart selectedLegs = legs[currentLegs];
+
+
+        // SNAP HEAD
+
+        if (selectedHead.head != null &&
+            selectedHead.neckAttachPoint != null &&
+            selectedBody.headSocket != null)
+        {
+            SnapPart(
+                selectedHead.head.transform,
+                selectedHead.neckAttachPoint,
+                selectedBody.headSocket
+            );
+        }
+        else
+        {
+            Debug.LogWarning(
+                "Cannot snap head. Check Head, Neck Attach Point and Head Socket."
+            );
+        }
+
+
+        // SNAP LEGS
+
+        if (selectedLegs.legs != null &&
+            selectedLegs.hipAttachPoint != null &&
+            selectedBody.legsSocket != null)
+        {
+            SnapPart(
+                selectedLegs.legs.transform,
+                selectedLegs.hipAttachPoint,
+                selectedBody.legsSocket
+            );
+        }
+        else
+        {
+            Debug.LogWarning(
+                "Cannot snap legs. Check Legs, Hip Attach Point and Legs Socket."
+            );
+        }
+    }
+
+
+    // SNAP INDIVIDUAL PART
+
+    private void SnapPart(
+        Transform partRoot,
+        Transform attachPoint,
+        Transform targetSocket)
+    {
+        if (partRoot == null ||
+            attachPoint == null ||
+            targetSocket == null)
+        {
+            return;
+        }
+
+
+        
+        
+
+        Quaternion rotationDifference =
+            targetSocket.rotation *
+            Quaternion.Inverse(attachPoint.rotation);
+
+        partRoot.rotation =
+            rotationDifference *
+            partRoot.rotation;
+
+
+
+        Vector3 positionDifference =
+            targetSocket.position -
+            attachPoint.position;
+
+
+       
+        
+
+        partRoot.position += positionDifference;
+    }
+
+
+     
+    // UPDATE UI
+     
+    private void UpdateUI()
+    {
+        if (headNumberText != null)
+        {
+            headNumberText.text =
+                (currentHead + 1).ToString();
+        }
+
+        if (bodyNumberText != null)
+        {
+            bodyNumberText.text =
+                (currentBody + 1).ToString();
+        }
+
+        if (legNumberText != null)
+        {
+            legNumberText.text =
+                (currentLegs + 1).ToString();
+        }
+    }
+
+
+    
+    // GET CURRENT SELECTIONS
+    
+
+    public int GetSelectedHead()
+    {
+        return currentHead;
+    }
+
+    public int GetSelectedBody()
+    {
+        return currentBody;
+    }
+
+    public int GetSelectedLegs()
+    {
+        return currentLegs;
     }
 }

@@ -5,8 +5,7 @@ public class MonsterStats : MonoBehaviour
 {
    
     // MONSTER STATS
-    // Every monster begins with 1 in each stat.
-    // These 4 points are FREE and do not use the 100 point pool.
+    
     
 
     [Header("Monster Stats")]
@@ -22,10 +21,10 @@ public class MonsterStats : MonoBehaviour
 
     [Header("Point Settings")]
 
-    // Player has 100 EXTRA points to spend.
+    
     [SerializeField] private int startingPoints = 100;
 
-    // No stat can ever go below 1.
+   
     [SerializeField] private int minimumStat = 1;
 
     private int pointsRemaining;
@@ -56,10 +55,8 @@ public class MonsterStats : MonoBehaviour
 
     public int PointsRemaining => pointsRemaining;
 
-    // Number of the player's 100 points that have been spent.
     public int PointsSpent => startingPoints - pointsRemaining;
 
-    // Includes the four free starting points.
     public int TotalStats =>
         health +
         defence +
@@ -75,13 +72,12 @@ public class MonsterStats : MonoBehaviour
 
     private void Start()
     {
-        // Reset stats to their minimum values.
+       
         health = minimumStat;
         defence = minimumStat;
         attack = minimumStat;
         intelligence = minimumStat;
 
-        // Give the player their full 100 point pool.
         pointsRemaining = startingPoints;
 
         UpdateUI();
@@ -202,8 +198,7 @@ public class MonsterStats : MonoBehaviour
 
     private bool CanSpendPoint()
     {
-        // Player can only increase a stat if they
-        // still have points available.
+       
         return pointsRemaining > 0;
     }
 
@@ -226,16 +221,16 @@ public class MonsterStats : MonoBehaviour
 
     private void UpdateUI()
     {
-        // Update stat numbers.
+        
         healthNumber.text = health.ToString();
         defenceNumber.text = defence.ToString();
         attackNumber.text = attack.ToString();
         intelligenceNumber.text = intelligence.ToString();
 
-        // Update remaining allocation points.
+       
         pointsNumber.text = pointsRemaining.ToString();
 
-        // Update summon cost.
+       
         costNumber.text = SummonCost + " SP";
     }
 }
