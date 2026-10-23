@@ -9,44 +9,44 @@ public class EffectPicker : MonoBehaviour
     [SerializeField] private MonsterStats monsterStats;
 
 
-    // EFFECT LIST
+    // EFFECT CATEGORY PANELS
 
-    [Header("Effect List")]
+    [Header("Effect Category Panels")]
 
-    [SerializeField] private GameObject effectsHPPanel;
+    [SerializeField] private GameObject effectsHP;
+    [SerializeField] private GameObject effectsDEF;
+    [SerializeField] private GameObject effectsINT;
+    [SerializeField] private GameObject effectsATT;
+
+
+    // BATTLE HARDENED
+
+    [Header("Battle Hardened")]
 
     [SerializeField] private GameObject battleHardenedButton;
 
-
-    // BATTLE HARDENED INFORMATION
-
-    [Header("Battle Hardened Info")]
-
-    [SerializeField] private GameObject battleHardenedInfoPanel;
+    [SerializeField] private GameObject battleHardenedInfo;
 
     [SerializeField] private TMP_Text battleHardenedInfoText;
-
-    [SerializeField] private GameObject addButton;
 
 
     // EFFECT SLOT TEXT
 
-    [Header("Selected Effect Text")]
+    [Header("Effect Slot Text")]
 
     [SerializeField] private TMP_Text effect1Text;
     [SerializeField] private TMP_Text effect2Text;
 
 
     // CURRENT EFFECT PICKER STATE
-   
+    
+
     private int activeSlot = 0;
 
 
-   
     private string previewedEffect = "";
 
 
-  
     private string selectedEffect1 = "";
     private string selectedEffect2 = "";
 
@@ -55,7 +55,6 @@ public class EffectPicker : MonoBehaviour
 
     private void Start()
     {
-        
         if (effect1Text != null)
             effect1Text.text = "";
 
@@ -63,52 +62,84 @@ public class EffectPicker : MonoBehaviour
             effect2Text.text = "";
 
 
-        
-        CloseEffectInformation();
+        HideEffectLists();
 
 
-        
-        if (effectsHPPanel != null)
-            effectsHPPanel.SetActive(false);
+        HideAllEffectInfo();
     }
 
 
-    // OPEN EFFECT SLOT 1
+    // EFFECT SLOT 1
 
     public void OpenEffectSlot1()
     {
         activeSlot = 1;
 
-        OpenAvailableEffects();
+        OpenEffectList();
     }
 
 
-    // OPEN EFFECT SLOT 2
+    // EFFECT SLOT 2
 
     public void OpenEffectSlot2()
     {
         activeSlot = 2;
 
-        OpenAvailableEffects();
+        OpenEffectList();
     }
 
 
-    // OPEN AVAILABLE EFFECTS
+    // OPEN EFFECT LIST
 
-    private void OpenAvailableEffects()
+    private void OpenEffectList()
     {
-        CloseEffectInformation();
+        previewedEffect = "";
 
+        HideAllEffectInfo();
 
-        if (effectsHPPanel != null)
-            effectsHPPanel.SetActive(true);
-
+        ShowEffectLists();
 
         RefreshAvailableEffects();
     }
 
 
-    // CHECK STAT REQUIREMENTS
+    // SHOW EFFECT LISTS
+
+    private void ShowEffectLists()
+    {
+        if (effectsHP != null)
+            effectsHP.SetActive(true);
+
+        if (effectsDEF != null)
+            effectsDEF.SetActive(true);
+
+        if (effectsINT != null)
+            effectsINT.SetActive(true);
+
+        if (effectsATT != null)
+            effectsATT.SetActive(true);
+    }
+
+
+    // HIDE EFFECT LISTS
+
+    private void HideEffectLists()
+    {
+        if (effectsHP != null)
+            effectsHP.SetActive(false);
+
+        if (effectsDEF != null)
+            effectsDEF.SetActive(false);
+
+        if (effectsINT != null)
+            effectsINT.SetActive(false);
+
+        if (effectsATT != null)
+            effectsATT.SetActive(false);
+    }
+
+
+    // CHECK AVAILABLE EFFECTS
 
     public void RefreshAvailableEffects()
     {
@@ -122,13 +153,15 @@ public class EffectPicker : MonoBehaviour
         }
 
 
+        // BATTLE HARDENED
         
-        bool hasEnoughHealth =
+        // Requires 50 HP.
+
+        bool battleHardenedUnlocked =
             monsterStats.Health >= 50;
 
 
-        
-        bool alreadySelected =
+        bool battleHardenedAlreadySelected =
             selectedEffect1 == "Battle Hardened" ||
             selectedEffect2 == "Battle Hardened";
 
@@ -136,9 +169,12 @@ public class EffectPicker : MonoBehaviour
         if (battleHardenedButton != null)
         {
             battleHardenedButton.SetActive(
-                hasEnoughHealth && !alreadySelected
+                battleHardenedUnlocked &&
+                !battleHardenedAlreadySelected
             );
         }
+
+
     }
 
 
@@ -146,11 +182,13 @@ public class EffectPicker : MonoBehaviour
 
     public void PreviewBattleHardened()
     {
+        Debug.Log("Preview Battle Hardened clicked.");
+
+
         if (monsterStats == null)
             return;
 
 
-       
         if (monsterStats.Health < 50)
         {
             Debug.Log(
@@ -164,39 +202,36 @@ public class EffectPicker : MonoBehaviour
         previewedEffect = "Battle Hardened";
 
 
-        
-        if (effectsHPPanel != null)
-            effectsHPPanel.SetActive(false);
+        HideEffectLists();
+
+
+        HideAllEffectInfo();
+
+
+        if (battleHardenedInfo != null)
+        {
+            battleHardenedInfo.SetActive(true);
+        }
 
 
         
-        if (battleHardenedInfoPanel != null)
-            battleHardenedInfoPanel.SetActive(true);
-
-
         if (battleHardenedInfoText != null)
         {
             battleHardenedInfoText.text =
                 "BATTLE HARDENED\n\n" +
-                "Requirement: 50 HP\n\n" +
-                "Once per battle, this monster can resist an attack " +
-                "that would otherwise defeat it.\n\n" +
-                "Instead of being defeated, the monster remains " +
-                "on the field with 1 HP.\n\n" +
-                "This effect can activate once per card.";
+
+                 "Once Per Game This Monster\n"+
+                 
+                 "Can Survive a Fatal Attack on 1 HP";
         }
-
-
-        if (addButton != null)
-            addButton.SetActive(true);
     }
 
 
-    // ADD PREVIEWED EFFECT
+    // ADD CURRENT EFFECT
 
     public void AddPreviewedEffect()
     {
-        
+       
         if (activeSlot == 0)
         {
             Debug.Log(
@@ -208,23 +243,29 @@ public class EffectPicker : MonoBehaviour
 
 
         if (string.IsNullOrEmpty(previewedEffect))
-            return;
-
-
-        
-        if (selectedEffect1 == previewedEffect ||
-            selectedEffect2 == previewedEffect)
         {
             Debug.Log(
-                previewedEffect +
-                " has already been added to this monster."
+                "No effect is currently being previewed."
             );
 
             return;
         }
 
 
-        // ADD TO EFFECT SLOT 1
+       
+        if (selectedEffect1 == previewedEffect ||
+            selectedEffect2 == previewedEffect)
+        {
+            Debug.Log(
+                previewedEffect +
+                " has already been equipped."
+            );
+
+            return;
+        }
+
+
+        // EFFECT SLOT 1
 
         if (activeSlot == 1)
         {
@@ -237,7 +278,7 @@ public class EffectPicker : MonoBehaviour
         }
 
 
-        // ADD TO EFFECT SLOT 2
+        // EFFECT SLOT 2
 
         else if (activeSlot == 2)
         {
@@ -257,87 +298,93 @@ public class EffectPicker : MonoBehaviour
         );
 
 
-      
+        
         activeSlot = 0;
 
-       
-        CloseEffectInformation();
+        previewedEffect = "";
 
-       
+
+        HideAllEffectInfo();
+        HideEffectLists();
+
+
+        
         RefreshAvailableEffects();
     }
 
 
-    // REMOVE EFFECT SLOT 1
-    
+    // REMOVE EFFECT 1
 
     public void RemoveEffect1()
     {
         selectedEffect1 = "";
 
         if (effect1Text != null)
+        {
             effect1Text.text = "";
+        }
 
 
-        CloseEffectInformation();
+        previewedEffect = "";
+
+        HideAllEffectInfo();
 
         RefreshAvailableEffects();
     }
 
 
-    // REMOVE EFFECT SLOT 2
+    // REMOVE EFFECT 2
 
     public void RemoveEffect2()
     {
         selectedEffect2 = "";
 
         if (effect2Text != null)
+        {
             effect2Text.text = "";
+        }
 
 
-        CloseEffectInformation();
+        previewedEffect = "";
+
+        HideAllEffectInfo();
 
         RefreshAvailableEffects();
     }
 
 
-    // BACK FROM EFFECT INFORMATION
+    // BACK FROM EFFECT INFO
 
-    public void BackToEffectList()
+    public void BackFromEffectInfo()
     {
-        CloseEffectInformation();
+        previewedEffect = "";
+
+        HideAllEffectInfo();
 
 
-       
         if (activeSlot != 0)
         {
-            if (effectsHPPanel != null)
-                effectsHPPanel.SetActive(true);
-
+            ShowEffectLists();
             RefreshAvailableEffects();
         }
     }
 
 
-    // CLOSE EFFECT INFO
+    // HIDE ALL EFFECT INFO
 
-    private void CloseEffectInformation()
+    private void HideAllEffectInfo()
     {
-        previewedEffect = "";
+        if (battleHardenedInfo != null)
+        {
+            battleHardenedInfo.SetActive(false);
+        }
 
 
-        if (battleHardenedInfoPanel != null)
-            battleHardenedInfoPanel.SetActive(false);
-
-
-        if (addButton != null)
-            addButton.SetActive(false);
+        
     }
 
 
- 
-    // VALUES FOR SAVING LATER
-   
+    // SAVING ACCESS
 
     public string GetEffect1()
     {
