@@ -1,11 +1,10 @@
+
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
 public class MonsterCreationProgress : MonoBehaviour
 {
-   
     // CREATION UI SCREENS
-   
 
     [Header("Creation Screens")]
     [SerializeField] private GameObject appearanceUI;
@@ -13,10 +12,7 @@ public class MonsterCreationProgress : MonoBehaviour
     [SerializeField] private GameObject effectsUI;
     [SerializeField] private GameObject finishUI;
 
-
-    
     // CAMERA SETTINGS
-    
 
     [Header("Camera")]
     [SerializeField] private Camera mainCamera;
@@ -26,107 +22,91 @@ public class MonsterCreationProgress : MonoBehaviour
     [SerializeField] private Transform effectsCameraPosition;
     [SerializeField] private Transform finishCameraPosition;
 
+    // NAVIGATION BUTTONS
 
-    
-    // CURRENT CREATION STAGE
-    
+    [Header("Navigation Buttons")]
+    [SerializeField] private GameObject nextButton;
 
-  
+    // SAVE SCREEN CONTROLLER
+
+    [Header("Save Screen Controller")]
+    [SerializeField] private MonsterSaveController saveController;
+
+    // CURRENT STAGE
+    
 
     private int currentStage = 0;
 
-
-    
     // START
-   
 
     private void Start()
     {
-        
         ShowStage(0);
     }
 
-
-    
     // NEXT BUTTON
-    
 
     public void NextStage()
     {
-       
-        if (currentStage == 0)
+        switch (currentStage)
         {
-            ShowStage(1);
-        }
+            case 0:
+                ShowStage(1);
+                break;
 
-        
-        else if (currentStage == 1)
-        {
-            ShowStage(2);
-        }
+            case 1:
+                ShowStage(2);
+                break;
 
-        
-        else if (currentStage == 2)
-        {
-       
+            case 2:
+                ShowStage(3);
+                break;
 
-            ShowStage(3);
-        }
-
-       
-        else if (currentStage == 3)
-        {
-            Debug.Log("Monster is ready to be saved!");
-
-            
+            case 3:
+                
+                Debug.Log(
+                    "You are at the final stage. Save your monster!"
+                );
+                break;
         }
     }
 
-
-   
     // BACK BUTTON
-   
 
     public void PreviousStage()
     {
-       
-        if (currentStage == 0)
+        switch (currentStage)
         {
-            SceneManager.LoadScene("HubScene");
-        }
+            case 0:
+                // Appearance -> Hub
+                SceneManager.LoadScene("HubScene");
+                break;
 
-       
-        else if (currentStage == 1)
-        {
-            ShowStage(0);
-        }
+            case 1:
+                // Stats -> Appearance
+                ShowStage(0);
+                break;
 
-     
-        else if (currentStage == 2)
-        {
-            ShowStage(1);
-        }
+            case 2:
+                // Effects -> Stats
+                ShowStage(1);
+                break;
 
-       
-        else if (currentStage == 3)
-        {
-            ShowStage(2);
+            case 3:
+                // Save Creation -> Effects
+                ShowStage(2);
+                break;
         }
     }
 
-
-    
     // CHANGE CREATION STAGE
-    
 
     private void ShowStage(int stage)
     {
-        currentStage = stage;
+        // Prevent invalid stage numbers.
+        currentStage = Mathf.Clamp(stage, 0, 3);
 
-
-       
-        // Disable all screens first
-       
+        // DISABLE ALL CREATION SCREENS
 
         if (appearanceUI != null)
             appearanceUI.SetActive(false);
@@ -140,79 +120,120 @@ public class MonsterCreationProgress : MonoBehaviour
         if (finishUI != null)
             finishUI.SetActive(false);
 
+        // UPDATE NEXT BUTTON
 
-       
-        // APPEARANCE
-       
+        if (nextButton != null)
+        {
+            
+            nextButton.SetActive(currentStage != 3);
+        }
+        else
+        {
+            Debug.LogWarning(
+                "MonsterCreationProgress: Next Button is not assigned!"
+            );
+        }
+
+        // APPEARANCE STAGE
 
         if (currentStage == 0)
         {
             if (appearanceUI != null)
+            {
                 appearanceUI.SetActive(true);
+            }
 
             MoveCamera(appearanceCameraPosition);
+
+            Debug.Log("Creation Stage: Appearance");
         }
 
-
-      
-        // STATS
         
+        // STATS STAGE
 
         else if (currentStage == 1)
         {
             if (statsUI != null)
+            {
                 statsUI.SetActive(true);
+            }
 
             MoveCamera(statsCameraPosition);
+
+            Debug.Log("Creation Stage: Stats");
         }
 
-
-        
-        // EFFECTS
-       
+        // EFFECTS STAGE
 
         else if (currentStage == 2)
         {
             if (effectsUI != null)
+            {
                 effectsUI.SetActive(true);
+            }
 
             MoveCamera(effectsCameraPosition);
+
+            Debug.Log("Creation Stage: Effects");
         }
 
-
-        
-        // FINISH
-        
+        // SAVE CREATION STAGE
 
         else if (currentStage == 3)
         {
             if (finishUI != null)
+            {
                 finishUI.SetActive(true);
+            }
 
             MoveCamera(finishCameraPosition);
+
+            
+            if (saveController != null)
+            {
+                saveController.RefreshSummary();
+
+                Debug.Log(
+                    "Save Creation page refreshed successfully."
+                );
+            }
+            else
+            {
+                Debug.LogWarning(
+                    "MonsterCreationProgress: Save Controller is not assigned!"
+                );
+            }
+
+            Debug.Log("Creation Stage: Save");
         }
     }
 
-
-    
     // CAMERA MOVEMENT
-   
 
     private void MoveCamera(Transform targetPosition)
     {
-        if (mainCamera == null || targetPosition == null)
+        if (mainCamera == null)
         {
-         
+            Debug.LogWarning(
+                "MonsterCreationProgress: Main Camera is missing!"
+            );
             return;
         }
 
+        if (targetPosition == null)
+        {
+            Debug.LogWarning(
+                "MonsterCreationProgress: Camera position is missing!"
+            );
+            return;
+        }
+
+        // Move the camera to the position for this stage.
         mainCamera.transform.position = targetPosition.position;
         mainCamera.transform.rotation = targetPosition.rotation;
     }
 
-
-   
-    // GET CURRENT STAGE
+    // GET CURRENT CREATION STAGE
 
     public int GetCurrentStage()
     {

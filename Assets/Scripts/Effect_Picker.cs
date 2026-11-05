@@ -7,9 +7,7 @@ using TMPro;
 
 public class EffectPicker : MonoBehaviour
 {
-    // =====================================================
     // EFFECT DEFINITION
-    // =====================================================
 
     [Serializable]
     public class EffectEntry
@@ -31,9 +29,7 @@ public class EffectPicker : MonoBehaviour
         public Button backButton;
     }
 
-    // =====================================================
     // INSPECTOR REFERENCES
-    // =====================================================
 
     [Header("Monster Stats")]
     [SerializeField] private MonsterStats monsterStats;
@@ -57,21 +53,14 @@ public class EffectPicker : MonoBehaviour
     [Header("Effect Definitions")]
     [SerializeField] private EffectEntry[] effects;
 
-    // =====================================================
     // LAYOUT SETTINGS
-    // =====================================================
 
     [Header("Automatic Effect Spacing")]
     [SerializeField] private float buttonSpacing = 10f;
     [SerializeField] private float buttonHeight = 35f;
 
-    // =====================================================
     // CURRENT SELECTION
-    // =====================================================
-
-    // 0 = Nothing selected
-    // 1 = Effect slot 1
-    // 2 = Effect slot 2
+    
 
     private int activeSlot = 0;
     private int previewedEffectIndex = -1;
@@ -87,9 +76,7 @@ public class EffectPicker : MonoBehaviour
     private VerticalLayoutGroup verticalLayout;
     private RectTransform listRect;
 
-    // =====================================================
     // AWAKE
-    // =====================================================
 
     private void Awake()
     {
@@ -139,15 +126,11 @@ public class EffectPicker : MonoBehaviour
             }
         }
 
-        // Add and Back buttons are NOT registered here.
-        // Keep their manual On Click connections.
 
         SetupAutomaticLayout();
     }
 
-    // =====================================================
     // REGISTER BUTTON
-    // =====================================================
 
     private void RegisterButton(
         Button button,
@@ -177,9 +160,7 @@ public class EffectPicker : MonoBehaviour
         });
     }
 
-    // =====================================================
     // START
-    // =====================================================
 
     private void Start()
     {
@@ -187,9 +168,7 @@ public class EffectPicker : MonoBehaviour
         CloseSelection();
     }
 
-    // =====================================================
     // AUTOMATIC EFFECT LAYOUT
-    // =====================================================
 
     private void SetupAutomaticLayout()
     {
@@ -225,10 +204,8 @@ public class EffectPicker : MonoBehaviour
         verticalLayout.spacing = buttonSpacing;
         verticalLayout.childAlignment = TextAnchor.UpperLeft;
 
-        // Preserve the widths you designed in Unity.
         verticalLayout.childControlWidth = false;
 
-        // Arrange each row using its preferred height.
         verticalLayout.childControlHeight = true;
 
         verticalLayout.childForceExpandWidth = false;
@@ -249,8 +226,7 @@ public class EffectPicker : MonoBehaviour
                 GameObject buttonObject =
                     effect.selectionButton.gameObject;
 
-                // Buttons must be direct children of the list
-                // for this layout to arrange them.
+                
                 if (buttonObject.transform.parent !=
                     availableEffectsList.transform)
                 {
@@ -278,9 +254,7 @@ public class EffectPicker : MonoBehaviour
         Debug.Log("Automatic effect layout configured.");
     }
 
-    // =====================================================
     // REBUILD EFFECT LIST LAYOUT
-    // =====================================================
 
     private void RebuildEffectLayout()
     {
@@ -297,9 +271,7 @@ public class EffectPicker : MonoBehaviour
         }
     }
 
-    // =====================================================
     // OPEN EFFECT SLOT 1
-    // =====================================================
 
     public void OpenEffectSlot1()
     {
@@ -307,9 +279,7 @@ public class EffectPicker : MonoBehaviour
         OpenEffectList();
     }
 
-    // =====================================================
     // OPEN EFFECT SLOT 2
-    // =====================================================
 
     public void OpenEffectSlot2()
     {
@@ -317,9 +287,7 @@ public class EffectPicker : MonoBehaviour
         OpenEffectList();
     }
 
-    // =====================================================
     // OPEN EFFECT LIST
-    // =====================================================
 
     private void OpenEffectList()
     {
@@ -334,9 +302,7 @@ public class EffectPicker : MonoBehaviour
         );
     }
 
-    // =====================================================
     // CHECK STAT REQUIREMENTS
-    // =====================================================
 
     private bool MeetsRequirements(EffectEntry effect)
     {
@@ -350,9 +316,7 @@ public class EffectPicker : MonoBehaviour
             monsterStats.Intelligence >= effect.requiredINT;
     }
 
-    // =====================================================
     // CHECK IF EFFECT IS ALREADY EQUIPPED
-    // =====================================================
 
     private bool IsAlreadyEquipped(string effectName)
     {
@@ -360,9 +324,7 @@ public class EffectPicker : MonoBehaviour
                selectedEffect2 == effectName;
     }
 
-    // =====================================================
     // CHECK EQUIPPED EFFECT VALIDITY
-    // =====================================================
 
     private bool IsValidEquippedEffect(string effectName)
     {
@@ -384,9 +346,7 @@ public class EffectPicker : MonoBehaviour
         return false;
     }
 
-    // =====================================================
     // REFRESH AVAILABLE EFFECTS
-    // =====================================================
 
     public void RefreshAvailableEffects()
     {
@@ -408,7 +368,6 @@ public class EffectPicker : MonoBehaviour
 
         UpdateSlotText();
 
-        // Enable the list before arranging its children.
 
         if (availableEffectsList != null)
         {
@@ -417,7 +376,6 @@ public class EffectPicker : MonoBehaviour
 
         int availableCount = 0;
 
-        // Enable ALL eligible effects, not just one.
 
         foreach (EffectEntry effect in effects)
         {
@@ -451,9 +409,7 @@ public class EffectPicker : MonoBehaviour
         );
     }
 
-    // =====================================================
     // PREVIEW EFFECT
-    // =====================================================
 
     public void PreviewEffect(int index)
     {
@@ -525,10 +481,9 @@ public class EffectPicker : MonoBehaviour
         Debug.Log("Previewing " + effect.effectName);
     }
 
-    // =====================================================
     // ADD PREVIEWED EFFECT
-    // MANUAL UNITY ON CLICK
-    // =====================================================
+   
+ 
 
     public void AddPreviewedEffect()
     {
@@ -590,11 +545,7 @@ public class EffectPicker : MonoBehaviour
         CloseSelection();
     }
 
-    // =====================================================
-    // BACK FROM EFFECT INFO
-    // MANUAL UNITY ON CLICK
-    // =====================================================
-
+   
     public void BackFromEffectInfo()
     {
         Debug.Log("INFO BACK CLICKED");

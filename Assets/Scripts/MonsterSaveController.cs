@@ -1,42 +1,138 @@
 
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 using TMPro;
 
 public class MonsterSaveController : MonoBehaviour
 {
-    // ========================================
-    // CREATION SYSTEM REFERENCES
-    // ========================================
+    
+    // MONSTER CREATION REFERENCES
 
     [Header("Monster Creation References")]
     [SerializeField] private MonsterSwapper monsterSwapper;
     [SerializeField] private MonsterStats monsterStats;
     [SerializeField] private EffectPicker effectPicker;
 
-    // ========================================
-    // FINISH SCREEN UI
-    // ========================================
+    // MONSTER NAME
 
-    [Header("Finish UI")]
+    [Header("Monster Name")]
     [SerializeField] private TMP_InputField monsterNameInput;
-    [SerializeField] private TMP_Text feedbackText;
 
-    [Header("Optional Preview Text")]
+    // STATS DISPLAY
+
+    [Header("Final Stat Numbers")]
+    [SerializeField] private TMP_Text healthText;
+    [SerializeField] private TMP_Text defenceText;
+    [SerializeField] private TMP_Text attackText;
+    [SerializeField] private TMP_Text intelligenceText;
+
+    [Header("Points Allocated")]
+    [SerializeField] private TMP_Text pointsAllocatedText;
+
+    // EFFECTS DISPLAY
+
+    [Header("Equipped Effects")]
+    [SerializeField] private TMP_Text effect1Text;
+    [SerializeField] private TMP_Text effect2Text;
+
+    // SUMMON COST
+
+    [Header("Summon Cost")]
+    [SerializeField] private TMP_Text summonCostText;
+
+    // OPTIONAL UI
+
+    [Header("Optional UI")]
     [SerializeField] private TMP_Text monsterSummaryText;
-
-    [Header("Optional Save Button")]
+    [SerializeField] private TMP_Text feedbackText;
     [SerializeField] private Button saveButton;
 
-    // ========================================
-    // CURRENT SAVED STATE
-    // ========================================
+    // SAVE SETTINGS
 
-    private MonsterData savedMonster;
+    [Header("After Saving")]
+    [SerializeField] private bool returnToHubAfterSave = true;
+    [SerializeField] private string hubSceneName = "HubScene";
 
-    // ========================================
-    // CREATE MONSTER DATA
-    // ========================================
+    private bool monsterSaved = false;
+
+    // REFRESH SAVE SCREEN
+
+    public void RefreshSummary()
+    {
+        if (monsterStats == null ||
+            monsterSwapper == null ||
+            effectPicker == null)
+        {
+            Debug.LogError(
+                "MonsterSaveController: Missing creation references!"
+            );
+            return;
+        }
+
+        // Make sure effects still meet stat requirements.
+        effectPicker.RefreshAvailableEffects();
+
+        // STATS
+         
+
+        if (healthText != null)
+            healthText.text = monsterStats.Health.ToString();
+
+        if (defenceText != null)
+            defenceText.text = monsterStats.Defence.ToString();
+
+        if (attackText != null)
+            attackText.text = monsterStats.Attack.ToString();
+
+        if (intelligenceText != null)
+            intelligenceText.text =
+                monsterStats.Intelligence.ToString();
+
+        // POINTS ALLOCATED
+
+        if (pointsAllocatedText != null)
+        {
+            pointsAllocatedText.text =
+                monsterStats.PointsSpent + "/100 Points Allocated";
+        }
+
+        // EQUIPPED EFFECTS
+
+        string effectOne = effectPicker.GetEffect1();
+        string effectTwo = effectPicker.GetEffect2();
+
+        if (effect1Text != null)
+            effect1Text.text = FormatEffect(effectOne);
+
+        if (effect2Text != null)
+            effect2Text.text = FormatEffect(effectTwo);
+
+        // SUMMON COST
+
+        if (summonCostText != null)
+        {
+            summonCostText.text =
+                monsterStats.SummonCost + " SP";
+        }
+
+        // Optional combined summary field.
+        if (monsterSummaryText != null)
+        {
+            monsterSummaryText.text =
+                "HP: " + monsterStats.Health + "\n" +
+                "DEF: " + monsterStats.Defence + "\n" +
+                "ATK: " + monsterStats.Attack + "\n" +
+                "INT: " + monsterStats.Intelligence + "\n" +
+                "Effect 1: " + FormatEffect(effectOne) + "\n" +
+                "Effect 2: " + FormatEffect(effectTwo) + "\n" +
+                "Summon Cost: " + monsterStats.SummonCost + " SP";
+        }
+
+        Debug.Log("Save screen information refreshed.");
+    }
+
+    // BUILD MONSTER DATA
 
     private MonsterData BuildMonsterData()
     {
@@ -45,7 +141,27 @@ public class MonsterSaveController : MonoBehaviour
             effectPicker == null)
         {
             Debug.LogError(
-                "MonsterSaveController is missing references."
+                "Cannot build monster: missing references."
+            );
+
+            return null;
+        }
+
+        if (monsterNameInput == null)
+        {
+            Debug.LogError(
+                "Monster Name Input has not been assigned!"
+            );
+
+            return null;
+        }
+
+        string enteredName = monsterNameInput.text.Trim();
+
+        if (string.IsNullOrWhiteSpace(enteredName))
+        {
+            SetFeedback(
+                "Please enter or generate a monster name!"
             );
 
             return null;
@@ -54,17 +170,11 @@ public class MonsterSaveController : MonoBehaviour
         MonsterData data = new MonsterData();
 
         // NAME
-        string enteredName =
-            monsterNameInput != null
-                ? monsterNameInput.text.Trim()
-                : "";
 
-        data.monsterName =
-            string.IsNullOrWhiteSpace(enteredName)
-                ? "New Monster"
-                : enteredName;
+        data.monsterName = enteredName;
 
         // APPEARANCE
+
         data.headIndex =
             monsterSwapper.GetSelectedHead();
 
@@ -75,114 +185,112 @@ public class MonsterSaveController : MonoBehaviour
             monsterSwapper.GetSelectedLegs();
 
         // STATS
+
         data.health = monsterStats.Health;
         data.defence = monsterStats.Defence;
         data.attack = monsterStats.Attack;
         data.intelligence = monsterStats.Intelligence;
 
         // SUMMON COST
+
         data.summonCost = monsterStats.SummonCost;
 
-        // VALIDATE EFFECTS AGAINST CURRENT STATS
+        // EFFECTS
+
         effectPicker.RefreshAvailableEffects();
 
-        // EQUIPPED EFFECTS
         data.moveOne = effectPicker.GetEffect1();
         data.moveTwo = effectPicker.GetEffect2();
 
         return data;
     }
 
-    // ========================================
-    // REFRESH FINISH SCREEN
-    // ========================================
-
-    public void RefreshSummary()
-    {
-        MonsterData data = BuildMonsterData();
-
-        if (data == null)
-        {
-            SetFeedback(
-                "Unable to read monster information."
-            );
-
-            return;
-        }
-
-        if (monsterSummaryText == null)
-            return;
-
-        monsterSummaryText.text =
-            "Name: " + data.monsterName + "\n" +
-            "HP: " + data.health + "\n" +
-            "DEF: " + data.defence + "\n" +
-            "ATK: " + data.attack + "\n" +
-            "INT: " + data.intelligence + "\n" +
-            "Summon Cost: " + data.summonCost + " SP\n" +
-            "Effect 1: " + FormatEffect(data.moveOne) + "\n" +
-            "Effect 2: " + FormatEffect(data.moveTwo);
-    }
-
-    // ========================================
+    
     // SAVE MONSTER
-    // ========================================
 
     public void SaveMonster()
     {
-        // Avoid saving twice from accidental double-clicks.
-        if (savedMonster != null)
+        if (monsterSaved)
+        {
+            SetFeedback("This monster has already been saved.");
+            return;
+        }
+
+        MonsterData monster = BuildMonsterData();
+
+        if (monster == null)
+        {
+            if (monsterNameInput == null)
+            {
+                SetFeedback("Save failed: missing name input.");
+            }
+
+            return;
+        }
+
+        bool saveSuccessful =
+            MonsterSaveSystem.SaveMonster(monster);
+
+        if (!saveSuccessful)
         {
             SetFeedback(
-                "Monster already saved!"
+                "Failed to save monster. Check the Console."
             );
 
             return;
         }
 
-        MonsterData data = BuildMonsterData();
+        
+        // SAVE SUCCESSFUL
 
-        if (data == null)
+        monsterSaved = true;
+
+        SetFeedback(
+            monster.monsterName + " saved successfully!"
+        );
+
+        Debug.Log(
+            "Monster saved: " + monster.monsterName
+        );
+
+        Debug.Log(
+            "Save location: " + MonsterSaveSystem.SavePath
+        );
+
+        if (saveButton != null)
+            saveButton.interactable = false;
+
+        // RETURN TO HUB
+
+        if (returnToHubAfterSave)
         {
-            SetFeedback(
-                "Cannot save: missing monster data."
-            );
+            if (Application.CanStreamedLevelBeLoaded(hubSceneName))
+            {
+                SceneManager.LoadScene(hubSceneName);
+            }
+            else
+            {
+                Debug.LogWarning(
+                    "Monster saved, but Hub scene '" +
+                    hubSceneName +
+                    "' is not included in the Build Profile."
+                );
 
-            return;
-        }
-
-        bool success = MonsterSaveSystem.SaveMonster(data);
-
-        if (success)
-        {
-            savedMonster = data;
-
-            SetFeedback(
-                data.monsterName + " saved successfully!"
-            );
-
-            if (saveButton != null)
-                saveButton.interactable = false;
-
-            RefreshSummary();
-        }
-        else
-        {
-            SetFeedback(
-                "Saving failed. Check the Unity Console."
-            );
+                SetFeedback(
+                    "Monster saved! Hub scene is not configured."
+                );
+            }
         }
     }
 
-    // ========================================
-    // HELPERS
-    // ========================================
+    // HELPER METHODS
 
     private string FormatEffect(string effectName)
     {
-        return string.IsNullOrEmpty(effectName)
-            ? "None"
-            : effectName;
+        if (string.IsNullOrEmpty(effectName))
+            return "None";
+
+        return effectName;
     }
 
     private void SetFeedback(string message)

@@ -5,24 +5,18 @@ using UnityEngine;
 [Serializable]
 public class MonsterData
 {
-    // ========================================
     // MONSTER IDENTITY
-    // ========================================
 
     public string monsterId = "";
     public string monsterName = "New Monster";
 
-    // ========================================
     // APPEARANCE
-    // ========================================
 
     public int headIndex = 0;
     public int bodyIndex = 0;
     public int legsIndex = 0;
 
-    // ========================================
     // STATS
-    // ========================================
 
     
 
@@ -31,23 +25,17 @@ public class MonsterData
     public int attack = 1;
     public int intelligence = 1;
 
-    // ========================================
     // SUMMON COST
-    // ========================================
 
     public int summonCost = 0;
 
-    // ========================================
     // EQUIPPED EFFECTS
-    // ========================================
 
     
     public string moveOne = "";
     public string moveTwo = "";
 
-    // ========================================
     // HELPERS
-    // ========================================
 
     public int GetTotalStats()
     {
