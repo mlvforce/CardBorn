@@ -11949,7 +11949,7 @@ GameObject:
   - component: {fileID: 1965518957}
   - component: {fileID: 1965518956}
   m_Layer: 5
-  m_Name: Random_Name_button_button (1)
+  m_Name: Delete_deck_button
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
