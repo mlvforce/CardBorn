@@ -9,18 +9,10 @@ public class DeckBuilderController : MonoBehaviour
 {
     private const int MaxDeckSize = 34;
 
-    // ==========================================
-    // DECK UI
-    // ==========================================
-
     [Header("Deck UI")]
     [SerializeField] private Transform deckSlotsParent;
     [SerializeField] private TMP_InputField deckNameInput;
     [SerializeField] private TMP_Text deckCountText;
-
-    // ==========================================
-    // COLLECTION UI
-    // ==========================================
 
     [Header("Monster Collection")]
     [SerializeField] private Transform collectionContent;
@@ -30,10 +22,6 @@ public class DeckBuilderController : MonoBehaviour
     [SerializeField] private TMP_Text collectionCountText;
     [SerializeField] private TMP_Text selectedMonsterInfoText;
 
-    // ==========================================
-    // CONTROL BUTTONS
-    // ==========================================
-
     [Header("Deck Controls")]
     [SerializeField] private Button saveDeckButton;
     [SerializeField] private Button clearDeckButton;
@@ -42,9 +30,12 @@ public class DeckBuilderController : MonoBehaviour
     [Header("Optional Feedback")]
     [SerializeField] private TMP_Text feedbackText;
 
-    // ==========================================
-    // CURRENT DATA
-    // ==========================================
+    // NEW: Details popup references
+    [Header("Monster Details Popup")]
+    [SerializeField] private GameObject monsterDetailsPanel;
+    [SerializeField] private TMP_Text monsterDetailsText;
+    [SerializeField] private Button addToDeckButton;
+    [SerializeField] private Button closeDetailsButton;
 
     private List<MonsterData> collection =
         new List<MonsterData>();
@@ -53,86 +44,74 @@ public class DeckBuilderController : MonoBehaviour
 
     private Button[] deckSlotButtons;
 
-    // ==========================================
-    // START
-    // ==========================================
+    private MonsterData selectedMonster;
 
     private void Start()
     {
-        SetupDeckSlotButtons();
-        SetupControlButtons();
+        SetupDeckSlots();
+        SetupButtons();
+
+        if (monsterDetailsPanel != null)
+            monsterDetailsPanel.SetActive(false);
 
         LoadCollection();
         LoadCurrentDeck();
-
         RefreshDeckDisplay();
     }
 
     // ==========================================
-    // SET UP THE EXISTING 34 SLOTS
+    // SETUP
     // ==========================================
 
-    private void SetupDeckSlotButtons()
+    private void SetupDeckSlots()
     {
         if (deckSlotsParent == null)
         {
-            Debug.LogError(
-                "DeckBuilder: Deck Slots Parent is missing!"
-            );
+            Debug.LogError("Deck slots parent missing!");
             return;
         }
 
-        // Finds all Button components under the
-        // existing Deck_Building_Buttons object.
         deckSlotButtons =
             deckSlotsParent.GetComponentsInChildren<Button>(true);
 
         if (deckSlotButtons.Length != MaxDeckSize)
         {
             Debug.LogWarning(
-                "DeckBuilder: Found " +
-                deckSlotButtons.Length +
-                " slot buttons. Expected 34. " +
-                "Make sure this parent contains only deck slots."
+                "Expected 34 deck buttons, found " +
+                deckSlotButtons.Length
             );
         }
 
         for (int i = 0; i < deckSlotButtons.Length; i++)
         {
-            int slotIndex = i;
+            int index = i;
 
-            Button button = deckSlotButtons[i];
-
-            button.onClick.AddListener(
-                () => OnDeckSlotClicked(slotIndex)
+            deckSlotButtons[i].onClick.AddListener(
+                () => OnDeckSlotClicked(index)
             );
         }
     }
 
-    // ==========================================
-    // SET UP DECK CONTROL BUTTONS
-    // ==========================================
-
-    private void SetupControlButtons()
+    private void SetupButtons()
     {
         if (saveDeckButton != null)
-        {
             saveDeckButton.onClick.AddListener(SaveCurrentDeck);
-        }
 
         if (clearDeckButton != null)
-        {
             clearDeckButton.onClick.AddListener(ClearDeck);
-        }
 
         if (randomDeckButton != null)
-        {
             randomDeckButton.onClick.AddListener(RandomiseDeck);
-        }
+
+        if (addToDeckButton != null)
+            addToDeckButton.onClick.AddListener(AddSelectedMonster);
+
+        if (closeDetailsButton != null)
+            closeDetailsButton.onClick.AddListener(CloseMonsterDetails);
     }
 
     // ==========================================
-    // LOAD SAVED MONSTERS
+    // LOAD MONSTER COLLECTION
     // ==========================================
 
     public void LoadCollection()
@@ -142,16 +121,16 @@ public class DeckBuilderController : MonoBehaviour
         if (collection == null)
             collection = new List<MonsterData>();
 
-        Debug.Log(
-            "Loaded " + collection.Count +
-            " monsters into collection."
-        );
-
         RefreshCollectionDisplay();
+
+        Debug.Log(
+            "Collection loaded: " + collection.Count +
+            " monsters."
+        );
     }
 
     // ==========================================
-    // LOAD CURRENT DECK
+    // LOAD SAVED DECK
     // ==========================================
 
     private void LoadCurrentDeck()
@@ -159,63 +138,54 @@ public class DeckBuilderController : MonoBehaviour
         List<DeckData> savedDecks =
             DeckSaveSystem.LoadDecks();
 
-        // For the beta, open the first saved deck.
         if (savedDecks.Count > 0 &&
             savedDecks[0] != null)
         {
             currentDeck = savedDecks[0];
-
-            if (currentDeck.monsterIds == null)
-            {
-                currentDeck.monsterIds =
-                    new List<string>();
-            }
-
-            // Remove references to monsters
-            // that no longer exist.
-            currentDeck.monsterIds.RemoveAll(
-                id => FindMonster(id) == null
-            );
-
-            // Cap any old/invalid deck size.
-            if (currentDeck.monsterIds.Count > MaxDeckSize)
-            {
-                currentDeck.monsterIds.RemoveRange(
-                    MaxDeckSize,
-                    currentDeck.monsterIds.Count - MaxDeckSize
-                );
-            }
-
-            if (deckNameInput != null)
-                deckNameInput.text = currentDeck.deckName;
-
-            Debug.Log(
-                "Loaded deck: " + currentDeck.deckName
-            );
         }
         else
         {
             currentDeck = new DeckData();
-
             currentDeck.deckName = "My First Deck";
-
-            if (deckNameInput != null)
-                deckNameInput.text = currentDeck.deckName;
         }
 
+        if (currentDeck.monsterIds == null)
+        {
+            currentDeck.monsterIds =
+                new List<string>();
+        }
+
+        // Keep only IDs that exist in the collection.
+        // This only changes the working deck until saved.
+        currentDeck.monsterIds.RemoveAll(
+            id => FindMonster(id) == null
+        );
+
+        if (currentDeck.monsterIds.Count > MaxDeckSize)
+        {
+            currentDeck.monsterIds.RemoveRange(
+                MaxDeckSize,
+                currentDeck.monsterIds.Count - MaxDeckSize
+            );
+        }
+
+        if (deckNameInput != null)
+            deckNameInput.text = currentDeck.deckName;
+
+        RefreshDeckDisplay();
         RefreshCollectionDisplay();
     }
 
     // ==========================================
-    // FIND A SAVED MONSTER
+    // FIND MONSTER BY ID
     // ==========================================
 
-    private MonsterData FindMonster(string monsterId)
+    private MonsterData FindMonster(string id)
     {
         foreach (MonsterData monster in collection)
         {
             if (monster != null &&
-                monster.monsterId == monsterId)
+                monster.monsterId == id)
             {
                 return monster;
             }
@@ -225,7 +195,7 @@ public class DeckBuilderController : MonoBehaviour
     }
 
     // ==========================================
-    // REFRESH MONSTER COLLECTION
+    // BUILD COLLECTION UI
     // ==========================================
 
     private void RefreshCollectionDisplay()
@@ -234,28 +204,27 @@ public class DeckBuilderController : MonoBehaviour
             monsterCardPrefab == null)
         {
             Debug.LogWarning(
-                "Collection Content or Monster Card Prefab is missing."
+                "Collection Content or card prefab missing."
             );
             return;
         }
 
-        // Destroy previously generated cards.
-        // The prefab is stored as an asset, not
-        // inside this content object.
         for (int i = collectionContent.childCount - 1;
              i >= 0; i--)
         {
-            Destroy(collectionContent.GetChild(i).gameObject);
+            Destroy(
+                collectionContent.GetChild(i).gameObject
+            );
         }
 
-        int validCount = 0;
+        int count = 0;
 
         foreach (MonsterData monster in collection)
         {
             if (monster == null)
                 continue;
 
-            validCount++;
+            count++;
 
             Button card = Instantiate(
                 monsterCardPrefab,
@@ -264,120 +233,173 @@ public class DeckBuilderController : MonoBehaviour
 
             card.gameObject.SetActive(true);
 
-            TMP_Text cardText =
+            TMP_Text text =
                 card.GetComponentInChildren<TMP_Text>(true);
 
-            bool isInDeck =
-                currentDeck.monsterIds != null &&
-                currentDeck.monsterIds.Contains(monster.monsterId);
-
-            if (cardText != null)
+            if (text != null)
             {
-                cardText.text =
+                bool inDeck =
+                    currentDeck.monsterIds.Contains(
+                        monster.monsterId
+                    );
+
+                text.text =
                     monster.monsterName + "\n" +
                     "HP " + monster.health +
-                    " | ATK " + monster.attack + "\n" +
+                    "  ATK " + monster.attack + "\n" +
                     "DEF " + monster.defence +
-                    " | INT " + monster.intelligence + "\n" +
+                    "  INT " + monster.intelligence + "\n" +
                     monster.summonCost + " SP" +
-                    (isInDeck ? "\nIN DECK" : "");
+                    (inDeck ? "\nIN DECK" : "");
+
+                text.enableAutoSizing = true;
+                text.fontSizeMin = 10;
+                text.fontSizeMax = 18;
+                text.overflowMode =
+                    TextOverflowModes.Truncate;
             }
 
-            // Capture this monster for its button.
             MonsterData capturedMonster = monster;
 
             card.onClick.RemoveAllListeners();
 
             card.onClick.AddListener(
-                () => OnCollectionMonsterClicked(capturedMonster)
+                () => PreviewMonster(capturedMonster)
             );
         }
 
         if (collectionCountText != null)
-        {
             collectionCountText.text =
-                "Your Collection: " + validCount;
-        }
+                "Your Collection: " + count;
     }
 
     // ==========================================
-    // CLICK A MONSTER IN COLLECTION
+    // PREVIEW SELECTED MONSTER
     // ==========================================
 
-    private void OnCollectionMonsterClicked(MonsterData monster)
+    public void PreviewMonster(MonsterData monster)
     {
         if (monster == null)
             return;
 
-        ShowMonsterDetails(monster);
-        AddMonsterToDeck(monster);
+        selectedMonster = monster;
+
+        string effect1 =
+            string.IsNullOrEmpty(monster.moveOne)
+                ? "None" : monster.moveOne;
+
+        string effect2 =
+            string.IsNullOrEmpty(monster.moveTwo)
+                ? "None" : monster.moveTwo;
+
+        string details =
+            monster.monsterName + "\n\n" +
+            "HP: " + monster.health + "\n" +
+            "DEF: " + monster.defence + "\n" +
+            "ATK: " + monster.attack + "\n" +
+            "INT: " + monster.intelligence + "\n\n" +
+            "Summon Cost: " + monster.summonCost +
+            " SP\n\n" +
+            "Effect 1: " + effect1 + "\n" +
+            "Effect 2: " + effect2;
+
+        if (monsterDetailsText != null)
+            monsterDetailsText.text = details;
+
+        if (selectedMonsterInfoText != null)
+            selectedMonsterInfoText.text = details;
+
+        bool canAdd =
+            currentDeck.monsterIds.Count < MaxDeckSize &&
+            !currentDeck.monsterIds.Contains(monster.monsterId);
+
+        if (addToDeckButton != null)
+            addToDeckButton.interactable = canAdd;
+
+        if (monsterDetailsPanel != null)
+            monsterDetailsPanel.SetActive(true);
+
+        Debug.Log(
+            "Previewing monster: " + monster.monsterName
+        );
     }
 
     // ==========================================
-    // ADD MONSTER TO DECK
+    // ADD SELECTED MONSTER
     // ==========================================
 
-    public void AddMonsterToDeck(MonsterData monster)
+    public void AddSelectedMonster()
     {
-        if (monster == null ||
-            string.IsNullOrEmpty(monster.monsterId))
+        if (selectedMonster == null)
         {
-            ShowFeedback("Invalid monster.");
+            ShowFeedback("No monster selected.");
             return;
         }
 
         if (currentDeck.monsterIds.Count >= MaxDeckSize)
         {
-            ShowFeedback(
-                "Your deck is full! Maximum 34 cards."
-            );
+            ShowFeedback("Deck is full!");
             return;
         }
 
-        // For the beta, each saved monster
-        // can only occupy one deck slot.
-        if (currentDeck.monsterIds.Contains(monster.monsterId))
+        if (currentDeck.monsterIds.Contains(
+            selectedMonster.monsterId))
         {
-            ShowFeedback(
-                monster.monsterName +
-                " is already in the deck."
-            );
+            ShowFeedback("Monster is already in the deck.");
             return;
         }
 
-        currentDeck.monsterIds.Add(monster.monsterId);
+        if (string.IsNullOrEmpty(selectedMonster.monsterId))
+        {
+            ShowFeedback("Selected monster has no ID.");
+            return;
+        }
+
+        currentDeck.monsterIds.Add(
+            selectedMonster.monsterId
+        );
 
         ShowFeedback(
-            "Added " + monster.monsterName
+            "Added " + selectedMonster.monsterName
         );
 
         RefreshDeckDisplay();
         RefreshCollectionDisplay();
+        CloseMonsterDetails();
     }
 
     // ==========================================
-    // CLICK AN OCCUPIED DECK SLOT
+    // CLOSE PREVIEW
     // ==========================================
 
-    private void OnDeckSlotClicked(int slotIndex)
+    public void CloseMonsterDetails()
     {
-        if (slotIndex < 0 ||
-            slotIndex >= currentDeck.monsterIds.Count)
-        {
+        selectedMonster = null;
+
+        if (monsterDetailsPanel != null)
+            monsterDetailsPanel.SetActive(false);
+    }
+
+    // ==========================================
+    // REMOVE DECK CARD
+    // ==========================================
+
+    private void OnDeckSlotClicked(int slot)
+    {
+        if (slot < 0 ||
+            slot >= currentDeck.monsterIds.Count)
             return;
-        }
 
-        string monsterId =
-            currentDeck.monsterIds[slotIndex];
+        string id = currentDeck.monsterIds[slot];
 
-        MonsterData monster = FindMonster(monsterId);
+        MonsterData monster = FindMonster(id);
 
-        currentDeck.monsterIds.RemoveAt(slotIndex);
+        currentDeck.monsterIds.RemoveAt(slot);
 
         ShowFeedback(
-            monster != null
-                ? "Removed " + monster.monsterName
-                : "Removed monster from deck."
+            monster == null
+                ? "Removed card."
+                : "Removed " + monster.monsterName
         );
 
         RefreshDeckDisplay();
@@ -385,7 +407,7 @@ public class DeckBuilderController : MonoBehaviour
     }
 
     // ==========================================
-    // UPDATE THE 34 DECK SLOTS
+    // DISPLAY DECK
     // ==========================================
 
     private void RefreshDeckDisplay()
@@ -403,10 +425,9 @@ public class DeckBuilderController : MonoBehaviour
 
         for (int i = 0; i < deckSlotButtons.Length; i++)
         {
-            Button button = deckSlotButtons[i];
-
             TMP_Text label =
-                button.GetComponentInChildren<TMP_Text>(true);
+                deckSlotButtons[i]
+                .GetComponentInChildren<TMP_Text>(true);
 
             if (label == null)
                 continue;
@@ -416,37 +437,54 @@ public class DeckBuilderController : MonoBehaviour
                 MonsterData monster =
                     FindMonster(currentDeck.monsterIds[i]);
 
-                label.text = monster != null
-                    ? monster.monsterName
-                    : "Missing";
+                label.text = monster == null
+                    ? "Missing"
+                    : ShortName(monster.monsterName);
             }
             else
             {
-                // Show the original slot number.
                 label.text = (i + 1).ToString();
             }
+
+            label.enableAutoSizing = true;
+            label.fontSizeMin = 9;
+            label.fontSizeMax = 18;
+            label.enableWordWrapping = false;
+            label.overflowMode =
+                TextOverflowModes.Truncate;
         }
     }
 
+    private string ShortName(string name)
+    {
+        if (string.IsNullOrEmpty(name))
+            return "?";
+
+        const int maxLength = 8;
+
+        if (name.Length <= maxLength)
+            return name;
+
+        return name.Substring(0, maxLength - 1) + "…";
+    }
+
     // ==========================================
-    // CLEAR CURRENT DECK
+    // CLEAR DECK
     // ==========================================
 
     public void ClearDeck()
     {
         currentDeck.monsterIds.Clear();
 
+        CloseMonsterDetails();
         RefreshDeckDisplay();
         RefreshCollectionDisplay();
 
         ShowFeedback("Deck cleared.");
-
-        // Does NOT delete monsters.json.
-        // Save the deck to persist this change.
     }
 
     // ==========================================
-    // RANDOM DECK
+    // RANDOMISE DECK
     // ==========================================
 
     public void RandomiseDeck()
@@ -454,24 +492,18 @@ public class DeckBuilderController : MonoBehaviour
         List<MonsterData> available =
             new List<MonsterData>();
 
+        HashSet<string> seen = new HashSet<string>();
+
         foreach (MonsterData monster in collection)
         {
             if (monster != null &&
-                !string.IsNullOrEmpty(monster.monsterId))
+                !string.IsNullOrEmpty(monster.monsterId) &&
+                seen.Add(monster.monsterId))
             {
                 available.Add(monster);
             }
         }
 
-        if (available.Count == 0)
-        {
-            ShowFeedback(
-                "Create some monsters first!"
-            );
-            return;
-        }
-
-        // Fisher-Yates shuffle.
         for (int i = available.Count - 1; i > 0; i--)
         {
             int j = UnityEngine.Random.Range(0, i + 1);
@@ -495,12 +527,12 @@ public class DeckBuilderController : MonoBehaviour
             );
         }
 
+        CloseMonsterDetails();
         RefreshDeckDisplay();
         RefreshCollectionDisplay();
 
         ShowFeedback(
-            "Random deck created with " +
-            amount + " monster(s)."
+            "Random deck: " + amount + " cards."
         );
     }
 
@@ -522,22 +554,16 @@ public class DeckBuilderController : MonoBehaviour
             return;
         }
 
-        // Make sure every card still exists.
         foreach (string id in currentDeck.monsterIds)
         {
             if (FindMonster(id) == null)
             {
-                ShowFeedback(
-                    "Deck contains a missing monster."
-                );
+                ShowFeedback("Deck has a missing monster.");
                 return;
             }
         }
 
-        bool saved =
-            DeckSaveSystem.SaveDeck(currentDeck);
-
-        if (saved)
+        if (DeckSaveSystem.SaveDeck(currentDeck))
         {
             ShowFeedback(
                 "Deck saved: " + currentDeck.deckName
@@ -545,40 +571,8 @@ public class DeckBuilderController : MonoBehaviour
         }
         else
         {
-            ShowFeedback(
-                "Deck saving failed. Check Console."
-            );
+            ShowFeedback("Deck save failed.");
         }
-    }
-
-    // ==========================================
-    // SHOW MONSTER DETAILS
-    // ==========================================
-
-    private void ShowMonsterDetails(MonsterData monster)
-    {
-        if (selectedMonsterInfoText == null)
-            return;
-
-        string firstEffect =
-            string.IsNullOrEmpty(monster.moveOne)
-                ? "None"
-                : monster.moveOne;
-
-        string secondEffect =
-            string.IsNullOrEmpty(monster.moveTwo)
-                ? "None"
-                : monster.moveTwo;
-
-        selectedMonsterInfoText.text =
-            monster.monsterName + "\n" +
-            "HP: " + monster.health + "\n" +
-            "DEF: " + monster.defence + "\n" +
-            "ATK: " + monster.attack + "\n" +
-            "INT: " + monster.intelligence + "\n" +
-            "Cost: " + monster.summonCost + " SP\n" +
-            "Effect 1: " + firstEffect + "\n" +
-            "Effect 2: " + secondEffect;
     }
 
     // ==========================================
@@ -590,13 +584,11 @@ public class DeckBuilderController : MonoBehaviour
         Debug.Log(message);
 
         if (feedbackText != null)
-        {
             feedbackText.text = message;
-        }
     }
 
     // ==========================================
-    // OPTIONAL REFRESH METHOD
+    // RELOAD
     // ==========================================
 
     public void ReloadCollection()
