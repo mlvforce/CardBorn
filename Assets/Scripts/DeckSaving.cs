@@ -35,9 +35,7 @@ public static class DeckSaveSystem
         }
     }
 
-    // =====================================
     // LOAD SAVED DECKS
-    // =====================================
 
     public static List<DeckData> LoadDecks()
     {
@@ -73,9 +71,7 @@ public static class DeckSaveSystem
         }
     }
 
-    // =====================================
     // SAVE OR UPDATE A DECK
-    // =====================================
 
     public static bool SaveDeck(DeckData deck)
     {
@@ -173,8 +169,7 @@ public static class DeckSaveSystem
 
             File.WriteAllText(temporaryPath, json);
 
-            // Compatible with the File APIs in
-            // your Unity project.
+           
             File.Copy(temporaryPath, SavePath, true);
             File.Delete(temporaryPath);
 
