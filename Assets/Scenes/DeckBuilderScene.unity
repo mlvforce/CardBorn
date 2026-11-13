@@ -985,7 +985,7 @@ MonoBehaviour:
   m_CellSize: {x: 120, y: 160}
   m_Spacing: {x: 12, y: 12}
   m_Constraint: 1
-  m_ConstraintCount: 5
+  m_ConstraintCount: 7
 --- !u!1 &177985781
 GameObject:
   m_ObjectHideFlags: 0
@@ -3075,8 +3075,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -299.7, y: -49.6}
-  m_SizeDelta: {x: 140.9126, y: 50}
+  m_AnchoredPosition: {x: -299.7, y: -39.715}
+  m_SizeDelta: {x: 140.9126, y: 30.23}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &499064475
 MonoBehaviour:
@@ -3163,7 +3163,7 @@ MonoBehaviour:
   m_VertexBufferAutoSizeReduction: 0
   m_useMaxVisibleDescender: 1
   m_pageToDisplay: 1
-  m_margin: {x: 0, y: 0, z: 0, w: 11.413818}
+  m_margin: {x: 0, y: 0, z: 0, w: 0.7705078}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
   m_hasFontAssetChanged: 0
@@ -5503,9 +5503,31 @@ MonoBehaviour:
     description: 'Once This Card Is Played Enemy Monsters Take 15 Damage For 2 Turns
       : Requires A Friendly Monster On Field With 50 INT '
     requiredInt: 50
-    effectType: 0
-    targetType: 2
+    effectType: 6
+    targetType: 5
     effectStrength: 15
+    durationTurns: 2
+    spellArtwork: {fileID: 0}
+    maximumCopies: 3
+  - spellId: weaking fog
+    spellName: Weaking Fog
+    description: 'Once This Card Is Played All Enemy Monsters Lose 10 Attack For
+      2 Turns : Requires A Friendly Monster On Field With 50 INT '
+    requiredInt: 50
+    effectType: 3
+    targetType: 5
+    effectStrength: 10
+    durationTurns: 2
+    spellArtwork: {fileID: 0}
+    maximumCopies: 3
+  - spellId: arcane shield
+    spellName: Arcane Shield
+    description: 'Once This Card Is Played Pick One Monster To Gain 25 Sheild Once
+      For 2 Turns: Requires A Friendly Monster On Field With 35 INT '
+    requiredInt: 35
+    effectType: 2
+    targetType: 3
+    effectStrength: 25
     durationTurns: 2
     spellArtwork: {fileID: 0}
     maximumCopies: 3
@@ -16123,6 +16145,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2116864682}
   - component: {fileID: 2116864681}
+  - component: {fileID: 2116864683}
   m_Layer: 0
   m_Name: Deck_builder_controller
   m_TagString: Untagged
@@ -16203,6 +16226,25 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2116864683
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2116864680}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 77b2ab9a2e3b2ee4c817b51e37844980, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  deckBuilder: {fileID: 2116864681}
+  deckSlot1: {fileID: 61414822}
+  deckSlot2: {fileID: 303298277}
+  deckSlot3: {fileID: 177985783}
+  deckSlot4: {fileID: 1816205720}
+  normalColour: {r: 0.4, g: 0.12, b: 0.5, a: 1}
+  selectedColour: {r: 0.7, g: 0.1, b: 0.9, a: 1}
 --- !u!1001 &4825534824685593387
 PrefabInstance:
   m_ObjectHideFlags: 0

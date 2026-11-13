@@ -21,6 +21,7 @@ public class SpellLibrary : MonoBehaviour
         return spells;
     }
 
+    
     // FIND SPELL BY ID
 
     public SpellData GetSpellById(string spellId)
@@ -34,8 +35,8 @@ public class SpellLibrary : MonoBehaviour
                 continue;
 
             if (string.Equals(
-                spell.spellId,
-                spellId,
+                spell.spellId?.Trim(),
+                spellId.Trim(),
                 StringComparison.OrdinalIgnoreCase))
             {
                 return spell;
@@ -45,7 +46,6 @@ public class SpellLibrary : MonoBehaviour
         return null;
     }
 
-    
     // FIND SPELL BY NAME
 
     public SpellData GetSpellByName(string spellName)
@@ -59,8 +59,8 @@ public class SpellLibrary : MonoBehaviour
                 continue;
 
             if (string.Equals(
-                spell.spellName,
-                spellName,
+                spell.spellName?.Trim(),
+                spellName.Trim(),
                 StringComparison.OrdinalIgnoreCase))
             {
                 return spell;
@@ -81,6 +81,7 @@ public class SpellLibrary : MonoBehaviour
         if (spell == null)
             return false;
 
+       
         return spell.MeetsIntRequirement(
             highestFriendlyMonsterInt
         );
@@ -129,8 +130,7 @@ public class SpellLibrary : MonoBehaviour
             if (!usedIds.Add(id))
             {
                 Debug.LogError(
-                    "Spell Library: Duplicate Spell ID: " +
-                    id,
+                    "Spell Library: Duplicate Spell ID: " + id,
                     this
                 );
 
@@ -149,7 +149,8 @@ public class SpellLibrary : MonoBehaviour
             }
 
             if (spell.requiredInt < 0 ||
-                spell.effectStrength < 0)
+                spell.effectStrength < 0 ||
+                spell.durationTurns < 0)
             {
                 Debug.LogWarning(
                     "Spell Library: " + id +
@@ -159,13 +160,45 @@ public class SpellLibrary : MonoBehaviour
 
                 valid = false;
             }
+
+            if (spell.maximumCopies < 1 ||
+                spell.maximumCopies > 3)
+            {
+                Debug.LogWarning(
+                    "Spell Library: " + id +
+                    " must allow between 1 and 3 copies.",
+                    this
+                );
+
+                valid = false;
+            }
+
+            if (spell.IsOngoingEffect() &&
+                spell.durationTurns < 1)
+            {
+                Debug.LogWarning(
+                    "Spell Library: " + id +
+                    " is an ongoing effect but has " +
+                    "a duration of 0.",
+                    this
+                );
+
+                valid = false;
+            }
+
+            if (spell.effectType ==
+                SpellEffectType.ReturnMonsterToHand &&
+                spell.targetType ==
+                SpellTargetType.FriendlyGraveyardMonster)
+            {
+                
+            }
         }
 
         return valid;
     }
 
     // STARTUP
-    
 
     private void Awake()
     {

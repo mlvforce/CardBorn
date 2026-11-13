@@ -2,7 +2,8 @@
 using System;
 using UnityEngine;
 
-// What happens when the spell is used.
+// WHAT HAPPENS WHEN A SPELL IS USED
+
 public enum SpellEffectType
 {
     Damage,
@@ -10,19 +11,30 @@ public enum SpellEffectType
     Shield,
     ModifyAttack,
     DrawCards,
-    ReturnMonsterToHand
+    ReturnMonsterToHand,
+
+    // New effects.
+    DamageOverTime
 }
 
-// What the player can select.
+// WHAT THE SPELL CAN TARGET
+
 public enum SpellTargetType
 {
     None,
     FriendlyMonster,
     EnemyMonster,
-    AnyMonster
+    AnyMonster,
+
+    AllMonsters,
+    AllEnemyMonsters,
+    AllFriendlyMonsters,
+
+    FriendlyGraveyardMonster
 }
 
-// Spell data stored in the Spell Library.
+// SPELL INFORMATION
+
 [Serializable]
 public class SpellData
 {
@@ -36,14 +48,18 @@ public class SpellData
     [TextArea(3, 8)]
     public string description;
 
+    // SPELL REQUIREMENTS
+
     [Header("Spell Requirements")]
 
     [Min(0)]
     [Tooltip(
-        "A living friendly monster on the field must " +
-        "have at least this much INT."
+        "A living friendly monster on the battlefield " +
+        "must have at least this much INT to cast the spell."
     )]
     public int requiredInt = 0;
+
+    // SPELL EFFECT
 
     [Header("Spell Effect")]
 
@@ -56,28 +72,34 @@ public class SpellData
     [Min(0)]
     [Tooltip(
         "Damage, healing, shield strength, " +
-        "cards drawn, or other numerical effect."
+        "cards drawn or other numerical effect."
     )]
     public int effectStrength = 0;
 
-    [Min(1)]
+    [Min(0)]
     [Tooltip(
-        "How many turns an ongoing effect lasts. " +
-        "The battle system will use this later."
+        "For instant effects, use 0. " +
+        "For effects lasting multiple turns, " +
+        "enter the number of turns."
     )]
     public int durationTurns = 1;
+
+    // CARD ARTWORK
 
     [Header("Card Artwork")]
 
     [Tooltip("Image displayed on the spell card.")]
     public Sprite spellArtwork;
 
+    // DECK RULES
+
     [Header("Deck Rules")]
 
     [Range(1, 3)]
     public int maximumCopies = 3;
 
-    // USEFUL HELPER METHODS
+    
+    // HELPER METHODS
 
     public bool HasValidId()
     {
@@ -93,6 +115,28 @@ public class SpellData
     {
         return "Required INT: " + requiredInt;
     }
+
+    public bool IsMultiTarget()
+    {
+        return targetType == SpellTargetType.AllMonsters ||
+               targetType == SpellTargetType.AllEnemyMonsters ||
+               targetType == SpellTargetType.AllFriendlyMonsters;
+    }
+
+    public bool TargetsGraveyard()
+    {
+        return targetType ==
+            SpellTargetType.FriendlyGraveyardMonster;
+    }
+
+    public bool IsOngoingEffect()
+    {
+        return effectType == SpellEffectType.DamageOverTime ||
+               effectType == SpellEffectType.ModifyAttack ||
+               effectType == SpellEffectType.Shield;
+    }
+
+    // EFFECT TYPE DESCRIPTION
 
     public string GetEffectTypeText()
     {
@@ -116,8 +160,46 @@ public class SpellData
             case SpellEffectType.ReturnMonsterToHand:
                 return "Return Monster";
 
+            case SpellEffectType.DamageOverTime:
+                return "Damage Over Time";
+
             default:
                 return "Unknown";
+        }
+    }
+
+    // TARGET TYPE DESCRIPTION
+
+    public string GetTargetTypeText()
+    {
+        switch (targetType)
+        {
+            case SpellTargetType.None:
+                return "No Target";
+
+            case SpellTargetType.FriendlyMonster:
+                return "Friendly Monster";
+
+            case SpellTargetType.EnemyMonster:
+                return "Enemy Monster";
+
+            case SpellTargetType.AnyMonster:
+                return "Any Monster";
+
+            case SpellTargetType.AllMonsters:
+                return "All Monsters";
+
+            case SpellTargetType.AllEnemyMonsters:
+                return "All Enemy Monsters";
+
+            case SpellTargetType.AllFriendlyMonsters:
+                return "All Friendly Monsters";
+
+            case SpellTargetType.FriendlyGraveyardMonster:
+                return "Friendly Graveyard Monster";
+
+            default:
+                return "Unknown Target";
         }
     }
 }
