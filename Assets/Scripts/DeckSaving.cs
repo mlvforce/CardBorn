@@ -94,7 +94,6 @@ public static class DeckSaveSystem
             return false;
         }
 
-        // Avoid overwriting an unreadable existing file.
         if (File.Exists(SavePath))
         {
             try

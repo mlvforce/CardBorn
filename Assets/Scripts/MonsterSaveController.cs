@@ -116,7 +116,6 @@ public class MonsterSaveController : MonoBehaviour
                 monsterStats.SummonCost + " SP";
         }
 
-        // Optional combined summary field.
         if (monsterSummaryText != null)
         {
             monsterSummaryText.text =

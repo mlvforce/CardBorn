@@ -26,9 +26,7 @@ public static class MonsterSaveSystem
         }
     }
 
-    // ========================================
     // LOAD ALL MONSTERS
-    // ========================================
 
     public static List<MonsterData> LoadMonsters()
     {
@@ -69,9 +67,8 @@ public static class MonsterSaveSystem
         }
     }
 
-    // ========================================
     // SAVE A MONSTER
-    // ========================================
+    
 
     public static bool SaveMonster(MonsterData monster)
     {
@@ -103,7 +100,6 @@ public static class MonsterSaveSystem
         {
             List<MonsterData> monsters = LoadMonsters();
 
-            // Give every monster a unique identity.
             monster.EnsureId();
 
             foreach (MonsterData existing in monsters)
@@ -119,7 +115,6 @@ public static class MonsterSaveSystem
                 }
             }
 
-            // Write the collection, including the new monster.
             monsters.Add(monster);
 
             MonsterCollectionData collection =
@@ -132,7 +127,6 @@ public static class MonsterSaveSystem
                 true
             );
 
-            // Create directory if needed.
             string directory = Path.GetDirectoryName(
                 SavePath
             );
@@ -142,12 +136,10 @@ public static class MonsterSaveSystem
                 Directory.CreateDirectory(directory);
             }
 
-            // Write to a temporary file first.
             string temporaryPath = SavePath + ".tmp";
 
             File.WriteAllText(temporaryPath, json);
 
-            // Swap into the primary save path.
             File.Copy(temporaryPath, SavePath, true);
             File.Delete(temporaryPath);
 
@@ -171,9 +163,7 @@ public static class MonsterSaveSystem
         }
     }
 
-    // ========================================
     // VALIDATE STATS
-    // ========================================
 
     private static bool HasValidStats(MonsterData monster)
     {
@@ -187,8 +177,7 @@ public static class MonsterSaveSystem
 
         int allocated = monster.GetAllocatedPoints();
 
-        // Up to 100 allocatable points,
-        // plus four starting points.
+        
         if (allocated < 0 || allocated > 100)
         {
             return false;

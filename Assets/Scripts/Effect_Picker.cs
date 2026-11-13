@@ -24,7 +24,6 @@ public class EffectPicker : MonoBehaviour
         public Button selectionButton;
         public GameObject infoPanel;
 
-        // Manually connected in the Unity Inspector.
         public Button addButton;
         public Button backButton;
     }
@@ -80,7 +79,6 @@ public class EffectPicker : MonoBehaviour
 
     private void Awake()
     {
-        // Automatically connect effect slot buttons.
 
         RegisterButton(
             slot1Plus,
@@ -106,7 +104,6 @@ public class EffectPicker : MonoBehaviour
             "Slot 2 Minus"
         );
 
-        // Automatically connect effect selection buttons.
 
         if (effects != null)
         {
@@ -214,7 +211,6 @@ public class EffectPicker : MonoBehaviour
         verticalLayout.padding =
             new RectOffset(8, 8, 8, 8);
 
-        // Give each effect button a consistent height.
         if (effects != null)
         {
             foreach (EffectEntry effect in effects)
@@ -358,7 +354,6 @@ public class EffectPicker : MonoBehaviour
             return;
         }
 
-        // Remove effects if stats no longer qualify.
 
         if (!IsValidEquippedEffect(selectedEffect1))
             selectedEffect1 = "";
@@ -401,7 +396,6 @@ public class EffectPicker : MonoBehaviour
                 availableCount++;
         }
 
-        // Reposition visible buttons immediately.
         RebuildEffectLayout();
 
         Debug.Log(
@@ -466,7 +460,6 @@ public class EffectPicker : MonoBehaviour
 
         effectInfoContainer.SetActive(true);
 
-        // Activate any disabled parent groups.
         Transform parent = effect.infoPanel.transform.parent;
 
         while (parent != null &&
@@ -512,7 +505,6 @@ public class EffectPicker : MonoBehaviour
             return;
         }
 
-        // Prevent duplicates in the opposite slot.
 
         string otherEffect =
             activeSlot == 1 ? selectedEffect2 : selectedEffect1;
@@ -525,7 +517,6 @@ public class EffectPicker : MonoBehaviour
             return;
         }
 
-        // Equip effect.
 
         if (activeSlot == 1)
         {
@@ -565,9 +556,7 @@ public class EffectPicker : MonoBehaviour
         }
     }
 
-    // =====================================================
     // REMOVE EFFECT 1
-    // =====================================================
 
     public void RemoveEffect1()
     {
@@ -579,9 +568,7 @@ public class EffectPicker : MonoBehaviour
         Debug.Log("Effect 1 removed.");
     }
 
-    // =====================================================
     // REMOVE EFFECT 2
-    // =====================================================
 
     public void RemoveEffect2()
     {
@@ -593,9 +580,7 @@ public class EffectPicker : MonoBehaviour
         Debug.Log("Effect 2 removed.");
     }
 
-    // =====================================================
     // HIDE INFORMATION PANELS
-    // =====================================================
 
     private void HideAllInfo()
     {
@@ -617,9 +602,7 @@ public class EffectPicker : MonoBehaviour
         }
     }
 
-    // =====================================================
     // CLOSE SELECTION
-    // =====================================================
 
     public void CloseSelection()
     {
@@ -631,9 +614,7 @@ public class EffectPicker : MonoBehaviour
         RefreshAvailableEffects();
     }
 
-    // =====================================================
     // UPDATE EFFECT SLOT TEXT
-    // =====================================================
 
     private void UpdateSlotText()
     {
@@ -644,9 +625,8 @@ public class EffectPicker : MonoBehaviour
             effect2Text.text = selectedEffect2;
     }
 
-    // =====================================================
     // ACCESS EFFECTS FOR SAVING
-    // =====================================================
+   
 
     public string GetEffect1()
     {
