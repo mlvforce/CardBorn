@@ -23,6 +23,7 @@ public class BattleManager : MonoBehaviour
 
     public BattlePlayer Player { get; private set; }
     public BattlePlayer Opponent { get; private set; }
+
     public bool GameOver { get; private set; }
     public bool IsDiscarding { get; private set; }
 
@@ -30,6 +31,11 @@ public class BattleManager : MonoBehaviour
     private int selectedAttackerIndex = -1;
 
     public int SelectedHandIndex => selectedHandIndex;
+
+    private readonly List<BattleTimedEffect> timedEffects =
+        new List<BattleTimedEffect>();
+
+    // SELECTED SPELL STATE
 
     public bool HasPendingSpell
     {
@@ -49,6 +55,8 @@ public class BattleManager : MonoBehaviour
                    card.spell != null;
         }
     }
+
+    // DIRECT ATTACK STATE
 
     public bool CanDirectAttack
     {
@@ -121,8 +129,11 @@ public class BattleManager : MonoBehaviour
 
         GameOver = false;
         IsDiscarding = false;
+
         selectedHandIndex = -1;
         selectedAttackerIndex = -1;
+
+        timedEffects.Clear();
 
         Player.DrawCards(openingHandSize);
         Opponent.DrawCards(openingHandSize);
@@ -135,7 +146,7 @@ public class BattleManager : MonoBehaviour
         Message("Battle started! Your turn.");
     }
 
-    // SELECT HAND CARD
+    // SELECT CARD FROM HAND
 
     public void SelectHandCard(int index)
     {
@@ -177,7 +188,7 @@ public class BattleManager : MonoBehaviour
         battleUI.Refresh();
     }
 
-    // SELECT SPELL
+    // SELECT A SPELL
 
     private void SelectSpellCard(BattleCard card)
     {
@@ -250,10 +261,24 @@ public class BattleManager : MonoBehaviour
             return;
         }
 
-        // FIRE BALL / HEALING LIGHT
+        // AREA-OF-EFFECT SPELLS
+
+        if (spell.effectType == SpellEffectType.ModifyAttack ||
+            IsArrowRain(spell))
+        {
+            Message(
+                spell.spellName +
+                " selected. Click an enemy monster slot " +
+                "to affect the whole enemy field."
+            );
+            return;
+        }
+
+        // SINGLE-TARGET SPELLS
 
         if (spell.effectType == SpellEffectType.Damage ||
-            spell.effectType == SpellEffectType.Heal)
+            spell.effectType == SpellEffectType.Heal ||
+            spell.effectType == SpellEffectType.Shield)
         {
             Message(
                 spell.spellName +
@@ -269,7 +294,7 @@ public class BattleManager : MonoBehaviour
         }
     }
 
-    // CHECK INT REQUIREMENT
+    // SPELL VALIDATION
 
     private bool CanMeetSpellRequirement(SpellData spell)
     {
@@ -277,6 +302,20 @@ public class BattleManager : MonoBehaviour
                Player != null &&
                Player.HasMonsters() &&
                Player.HighestMonsterINT() >= spell.requiredInt;
+    }
+
+    // Identify Arrow Rain using its existing ID.
+    // This avoids changing SpellEffectType or saved data.
+
+    private bool IsArrowRain(SpellData spell)
+    {
+        return spell != null &&
+               !string.IsNullOrWhiteSpace(spell.spellId) &&
+               string.Equals(
+                   spell.spellId.Trim(),
+                   "arrow rain",
+                   System.StringComparison.OrdinalIgnoreCase
+               );
     }
 
     // SOUL REBORN
@@ -298,17 +337,13 @@ public class BattleManager : MonoBehaviour
 
         if (!CanMeetSpellRequirement(spell))
         {
-            Message(
-                "Soul Reborn: INT requirement not met."
-            );
+            Message("Soul Reborn: INT requirement not met.");
             return false;
         }
 
         if (Player.hand.Count > maximumHandSize)
         {
-            Message(
-                "Too many cards in hand to cast Soul Reborn."
-            );
+            Message("Too many cards in hand to cast Soul Reborn.");
             return false;
         }
 
@@ -324,16 +359,10 @@ public class BattleManager : MonoBehaviour
             recovered.monster == null)
             return false;
 
-        // Remove the defeated monster from the grave.
         Player.graveyard.RemoveAt(graveIndex);
-
-        // Consume Soul Reborn.
         Player.hand.RemoveAt(selectedHandIndex);
 
-        // Return the monster to the hand.
         Player.hand.Add(recovered);
-
-        // Soul Reborn enters the graveyard.
         Player.graveyard.Add(spellCard);
 
         selectedHandIndex = -1;
@@ -346,14 +375,13 @@ public class BattleManager : MonoBehaviour
 
         Message(
             "Soul Reborn returned " +
-            recovered.Name +
-            " to your hand. Normal summoning SP applies."
+            recovered.Name + " to your hand."
         );
 
         return true;
     }
 
-    // CAST DAMAGE / HEALING SPELL
+    // CAST SPELL ON A FIELD SLOT
 
     public bool TryCastSelectedSpellOn(
         bool targetIsFriendly,
@@ -365,18 +393,121 @@ public class BattleManager : MonoBehaviour
         SpellData spell =
             Player.hand[selectedHandIndex].spell;
 
-        // Soul Reborn uses the graveyard instead.
         if (spell.effectType ==
             SpellEffectType.ReturnMonsterToHand)
             return true;
 
         if (!CanMeetSpellRequirement(spell))
         {
-            Message(
-                "Cannot cast. INT requirement not met."
-            );
+            Message("Cannot cast. INT requirement not met.");
             return true;
         }
+
+        // NEW: ARROW RAIN
+
+        if (IsArrowRain(spell))
+        {
+            if (targetIsFriendly)
+            {
+                Message("Arrow Rain targets the enemy field.");
+                return true;
+            }
+
+            if (targetSlot < 0 ||
+                targetSlot >= Opponent.monsterSlots.Length)
+                return true;
+
+            if (!Opponent.HasMonsters())
+            {
+                Message(
+                    "Arrow Rain needs at least one " +
+                    "living enemy monster."
+                );
+                return true;
+            }
+
+            // First wave happens immediately.
+            int affected = DamageAllMonsters(
+                Opponent,
+                spell.effectStrength,
+                spell.spellName
+            );
+
+            // Second wave is scheduled for the
+            // target owner's next turn.
+            if (!GameOver &&
+                spell.durationTurns > 1)
+            {
+                BattleTimedEffect rain =
+                    new BattleTimedEffect(
+                        SpellEffectType.Damage,
+                        null,
+                        Opponent,
+                        spell.effectStrength,
+                        1
+                    );
+
+                timedEffects.Add(rain);
+            }
+
+            ConsumeSelectedSpell();
+
+            Message(
+                "Arrow Rain hit " +
+                affected + " enemy monster(s)!"
+            );
+
+            CheckVictory();
+            battleUI.Refresh();
+            return true;
+        }
+
+        // WEAKENING FOG
+
+        if (spell.effectType ==
+            SpellEffectType.ModifyAttack)
+        {
+            if (targetIsFriendly)
+            {
+                Message(
+                    "Weakening Fog must target the enemy field."
+                );
+                return true;
+            }
+
+            if (targetSlot < 0 ||
+                targetSlot >= Opponent.monsterSlots.Length)
+                return true;
+
+            if (!Opponent.HasMonsters())
+            {
+                Message(
+                    "Weakening Fog needs living enemy monsters."
+                );
+                return true;
+            }
+
+            int affected = ApplyWeakeningFog(
+                Opponent,
+                spell.effectStrength,
+                spell.durationTurns
+            );
+
+            if (affected <= 0)
+                return true;
+
+            ConsumeSelectedSpell();
+
+            Message(
+                "Weakening Fog reduced ATK on " +
+                affected + " enemy monster(s)."
+            );
+
+            battleUI.Refresh();
+            return true;
+        }
+
+        // SINGLE-TARGET SPELLS
 
         BattlePlayer targetOwner =
             targetIsFriendly ? Player : Opponent;
@@ -406,20 +537,24 @@ public class BattleManager : MonoBehaviour
             case SpellEffectType.Damage:
                 {
                     int damage = Mathf.Max(
-                        0, spell.effectStrength
+                        0,
+                        spell.effectStrength
                     );
 
-                    // True damage ignores DEF.
-                    // BattleMonster.TakeDamage handles shields.
                     int oldHP = target.currentHP;
                     int oldShield = target.shield;
 
+                    // True damage bypasses DEF.
+                    // Shield still absorbs damage.
                     target.TakeDamage(damage);
 
                     Message(
-                        spell.spellName + " dealt " +
-                        damage + " damage to " +
-                        target.data.monsterName + "."
+                        spell.spellName + " hit " +
+                        target.data.monsterName + ". " +
+                        "Shield absorbed " +
+                        (oldShield - target.shield) +
+                        ", HP lost " +
+                        (oldHP - target.currentHP) + "."
                     );
 
                     if (target.currentHP <= 0)
@@ -434,12 +569,28 @@ public class BattleManager : MonoBehaviour
 
                     target.Heal(spell.effectStrength);
 
-                    int healed = target.currentHP - oldHP;
-
                     Message(
                         spell.spellName + " restored " +
-                        healed + " HP to " +
+                        (target.currentHP - oldHP) +
+                        " HP to " +
                         target.data.monsterName + "."
+                    );
+
+                    break;
+                }
+
+            case SpellEffectType.Shield:
+                {
+                    ApplyArcaneShield(
+                        target,
+                        spell.effectStrength,
+                        spell.durationTurns
+                    );
+
+                    Message(
+                        target.data.monsterName +
+                        " received " +
+                        target.shield + " Shield HP."
                     );
 
                     break;
@@ -454,6 +605,22 @@ public class BattleManager : MonoBehaviour
                 }
         }
 
+        ConsumeSelectedSpell();
+
+        CheckVictory();
+        battleUI.Refresh();
+        return true;
+    }
+
+    // CONSUME CAST SPELL
+
+    private void ConsumeSelectedSpell()
+    {
+        if (Player == null ||
+            selectedHandIndex < 0 ||
+            selectedHandIndex >= Player.hand.Count)
+            return;
+
         BattleCard usedCard =
             Player.hand[selectedHandIndex];
 
@@ -462,11 +629,6 @@ public class BattleManager : MonoBehaviour
 
         selectedHandIndex = -1;
         selectedAttackerIndex = -1;
-
-        CheckVictory();
-        battleUI.Refresh();
-
-        return true;
     }
 
     private bool IsValidSpellTarget(
@@ -489,9 +651,275 @@ public class BattleManager : MonoBehaviour
         }
     }
 
-    // SELECT A FIELD SLOT
+    // ===================================
+    // NEW: ARROW RAIN DAMAGE WAVES
+    // ===================================
 
-    public void SelectMonsterSlot(bool isPlayer, int index)
+    private int DamageAllMonsters(
+        BattlePlayer targetOwner,
+        int strength,
+        string sourceName)
+    {
+        if (targetOwner == null)
+            return 0;
+
+        int affected = 0;
+        int damage = Mathf.Max(0, strength);
+
+        for (int i = 0;
+             i < targetOwner.monsterSlots.Length;
+             i++)
+        {
+            BattleMonster monster =
+                targetOwner.monsterSlots[i];
+
+            if (monster == null ||
+                monster.currentHP <= 0)
+                continue;
+
+            int oldHP = monster.currentHP;
+            int oldShield = monster.shield;
+
+            monster.TakeDamage(damage);
+            affected++;
+
+            Message(
+                sourceName + " hit " +
+                monster.data.monsterName +
+                ". Shield absorbed " +
+                (oldShield - monster.shield) +
+                ", HP lost " +
+                (oldHP - monster.currentHP) + "."
+            );
+
+            if (monster.currentHP <= 0)
+                DefeatMonster(targetOwner, i);
+        }
+
+        return affected;
+    }
+
+    // Process scheduled Arrow Rain waves
+    // once at the affected player's next turn.
+
+    private void ProcessArrowRainFor(
+        BattlePlayer affectedPlayer)
+    {
+        for (int i = timedEffects.Count - 1;
+             i >= 0;
+             i--)
+        {
+            BattleTimedEffect effect =
+                timedEffects[i];
+
+            // Only the scheduled area-damage waves.
+            if (effect.effectType !=
+                    SpellEffectType.Damage ||
+                effect.targetMonster != null ||
+                effect.affectedPlayer != affectedPlayer)
+                continue;
+
+            int affected = DamageAllMonsters(
+                affectedPlayer,
+                effect.strength,
+                "Arrow Rain (second wave)"
+            );
+
+            effect.EndOwnerTurn();
+
+            Message(
+                "Arrow Rain's second wave hit " +
+                affected + " monster(s)!"
+            );
+
+            if (effect.IsExpired)
+                timedEffects.RemoveAt(i);
+        }
+    }
+
+    // ===================================
+    // ARCANE SHIELD
+    // ===================================
+
+    private void ApplyArcaneShield(
+        BattleMonster target,
+        int strength,
+        int duration)
+    {
+        if (target == null)
+            return;
+
+        for (int i = timedEffects.Count - 1;
+             i >= 0;
+             i--)
+        {
+            BattleTimedEffect effect = timedEffects[i];
+
+            if (effect.effectType ==
+                    SpellEffectType.Shield &&
+                effect.targetMonster == target)
+            {
+                RemoveTimedEffect(effect);
+                timedEffects.RemoveAt(i);
+            }
+        }
+
+        int amount = Mathf.Max(0, strength);
+        target.shield = amount;
+
+        timedEffects.Add(
+            new BattleTimedEffect(
+                SpellEffectType.Shield,
+                target,
+                target.owner,
+                amount,
+                duration
+            )
+        );
+    }
+
+    // ===================================
+    // WEAKENING FOG
+    // ===================================
+
+    private int ApplyWeakeningFog(
+        BattlePlayer targetOwner,
+        int strength,
+        int duration)
+    {
+        if (targetOwner == null)
+            return 0;
+
+        int affected = 0;
+        int amount = Mathf.Max(0, strength);
+        int turns = Mathf.Max(1, duration);
+
+        foreach (BattleMonster monster in
+                 targetOwner.monsterSlots)
+        {
+            if (monster == null ||
+                monster.currentHP <= 0)
+                continue;
+
+            // Refresh instead of stacking.
+            for (int i = timedEffects.Count - 1;
+                 i >= 0;
+                 i--)
+            {
+                BattleTimedEffect existing =
+                    timedEffects[i];
+
+                if (existing.effectType ==
+                        SpellEffectType.ModifyAttack &&
+                    existing.targetMonster == monster)
+                {
+                    RemoveTimedEffect(existing);
+                    timedEffects.RemoveAt(i);
+                }
+            }
+
+            monster.attackModifier -= amount;
+
+            timedEffects.Add(
+                new BattleTimedEffect(
+                    SpellEffectType.ModifyAttack,
+                    monster,
+                    targetOwner,
+                    amount,
+                    turns
+                )
+            );
+
+            affected++;
+        }
+
+        return affected;
+    }
+
+    // ===================================
+    // TEMPORARY EFFECT EXPIRATION
+    // ===================================
+
+    private void EndTimedEffectsFor(
+        BattlePlayer owner)
+    {
+        for (int i = timedEffects.Count - 1;
+             i >= 0;
+             i--)
+        {
+            BattleTimedEffect effect =
+                timedEffects[i];
+
+            if (effect.affectedPlayer != owner)
+                continue;
+
+            // Arrow Rain is processed separately
+            // at the beginning of the next turn.
+            if (effect.effectType ==
+                    SpellEffectType.Damage &&
+                effect.targetMonster == null)
+                continue;
+
+            if (effect.targetMonster == null ||
+                effect.targetMonster.currentHP <= 0)
+            {
+                timedEffects.RemoveAt(i);
+                continue;
+            }
+
+            effect.EndOwnerTurn();
+
+            if (effect.IsExpired)
+            {
+                RemoveTimedEffect(effect);
+                timedEffects.RemoveAt(i);
+            }
+        }
+    }
+
+    private void RemoveTimedEffect(
+        BattleTimedEffect effect)
+    {
+        if (effect == null ||
+            effect.targetMonster == null)
+            return;
+
+        switch (effect.effectType)
+        {
+            case SpellEffectType.Shield:
+                {
+                    effect.targetMonster.shield = 0;
+                    break;
+                }
+
+            case SpellEffectType.ModifyAttack:
+                {
+                    effect.targetMonster.attackModifier +=
+                        effect.strength;
+                    break;
+                }
+        }
+    }
+
+    private void ClearEffectsFor(
+        BattleMonster monster)
+    {
+        for (int i = timedEffects.Count - 1;
+             i >= 0;
+             i--)
+        {
+            if (timedEffects[i].targetMonster == monster)
+                timedEffects.RemoveAt(i);
+        }
+    }
+
+    // ===================================
+    // MONSTER SLOT SELECTION
+    // ===================================
+
+    public void SelectMonsterSlot(
+        bool isPlayer,
+        int index)
     {
         if (GameOver || IsDiscarding ||
             Player == null || Opponent == null)
@@ -507,11 +935,13 @@ public class BattleManager : MonoBehaviour
             index >= owner.monsterSlots.Length)
             return;
 
-        BattleMonster target = owner.monsterSlots[index];
+        BattleMonster target =
+            owner.monsterSlots[index];
 
         if (isPlayer)
         {
-            if (selectedHandIndex >= 0 && target == null)
+            if (selectedHandIndex >= 0 &&
+                target == null)
             {
                 SummonPlayerMonster(index);
                 return;
@@ -534,7 +964,9 @@ public class BattleManager : MonoBehaviour
                 }
                 else
                 {
-                    Message("This monster cannot attack yet.");
+                    Message(
+                        "This monster cannot attack yet."
+                    );
                 }
             }
 
@@ -542,8 +974,11 @@ public class BattleManager : MonoBehaviour
             return;
         }
 
-        if (target != null && selectedAttackerIndex >= 0)
+        if (target != null &&
+            selectedAttackerIndex >= 0)
+        {
             AttackEnemyMonster(index);
+        }
     }
 
     // SUMMON MONSTER
@@ -554,7 +989,8 @@ public class BattleManager : MonoBehaviour
             selectedHandIndex >= Player.hand.Count)
             return;
 
-        BattleCard card = Player.hand[selectedHandIndex];
+        BattleCard card =
+            Player.hand[selectedHandIndex];
 
         if (card.type != BattleCardType.Monster ||
             card.monster == null ||
@@ -562,12 +998,15 @@ public class BattleManager : MonoBehaviour
             return;
 
         int cost = Mathf.Max(
-            0, card.monster.summonCost
+            0,
+            card.monster.summonCost
         );
 
         if (Player.currentSP < cost)
         {
-            Message("Not enough SP to summon " + card.Name);
+            Message(
+                "Not enough SP to summon " + card.Name
+            );
             return;
         }
 
@@ -589,7 +1028,7 @@ public class BattleManager : MonoBehaviour
         battleUI.Refresh();
     }
 
-    // PREPARE ATTACK DRAGGING
+    // RED ATTACK ARROW SUPPORT
 
     public bool PrepareAttacker(int slotIndex)
     {
@@ -604,7 +1043,8 @@ public class BattleManager : MonoBehaviour
         BattleMonster attacker =
             Player.monsterSlots[slotIndex];
 
-        if (attacker == null || !attacker.CanAttack())
+        if (attacker == null ||
+            !attacker.CanAttack())
             return false;
 
         selectedHandIndex = -1;
@@ -620,11 +1060,10 @@ public class BattleManager : MonoBehaviour
     public void CancelAttackSelection()
     {
         selectedAttackerIndex = -1;
-
         battleUI.Refresh();
     }
 
-    // DEF DAMAGE CALCULATION
+    // DEF FORMULA
 
     private int CalculateMonsterDamage(
         BattleMonster attacker,
@@ -639,7 +1078,10 @@ public class BattleManager : MonoBehaviour
         float result =
             attack * (100f / (100f + defence));
 
-        return Mathf.Max(1, Mathf.CeilToInt(result));
+        return Mathf.Max(
+            1,
+            Mathf.CeilToInt(result)
+        );
     }
 
     // ATTACK ENEMY MONSTER
@@ -718,33 +1160,40 @@ public class BattleManager : MonoBehaviour
         selectedAttackerIndex = -1;
 
         Message(
-            "Direct attack dealt " + damage + " damage!"
+            "Direct attack dealt " +
+            damage + " damage!"
         );
 
         CheckVictory();
         battleUI.Refresh();
     }
 
-    // DEFEATED MONSTERS
+    // DEFEATED MONSTER
 
     private void DefeatMonster(
         BattlePlayer owner,
         int slot)
     {
-        BattleMonster monster = owner.monsterSlots[slot];
+        BattleMonster monster =
+            owner.monsterSlots[slot];
 
         if (monster == null)
             return;
+
+        ClearEffectsFor(monster);
 
         owner.graveyard.Add(monster.originalCard);
         owner.monsterSlots[slot] = null;
 
         Message(
-            monster.data.monsterName + " was defeated!"
+            monster.data.monsterName +
+            " was defeated!"
         );
     }
 
-    // END TURN / DISCARD RULE
+    // ===================================
+    // END PLAYER TURN
+    // ===================================
 
     public void EndTurn()
     {
@@ -769,7 +1218,6 @@ public class BattleManager : MonoBehaviour
         if (Player.hand.Count > maximumHandSize)
         {
             IsDiscarding = true;
-
             battleUI.Refresh();
 
             Message(
@@ -777,7 +1225,6 @@ public class BattleManager : MonoBehaviour
                 (Player.hand.Count - maximumHandSize) +
                 " card(s) to discard."
             );
-
             return;
         }
 
@@ -814,8 +1261,6 @@ public class BattleManager : MonoBehaviour
 
         IsDiscarding = false;
 
-        Message("Hand limit satisfied. Ending turn.");
-
         CompleteEndTurn();
     }
 
@@ -827,6 +1272,8 @@ public class BattleManager : MonoBehaviour
         selectedHandIndex = -1;
         selectedAttackerIndex = -1;
 
+        EndTimedEffectsFor(Player);
+
         RunAITurn();
 
         if (!GameOver)
@@ -835,7 +1282,9 @@ public class BattleManager : MonoBehaviour
             battleUI.Refresh();
     }
 
+    // ===================================
     // START PLAYER TURN
+    // ===================================
 
     private void StartPlayerTurn()
     {
@@ -848,10 +1297,20 @@ public class BattleManager : MonoBehaviour
 
         Player.DrawCard();
 
-        foreach (BattleMonster monster in Player.monsterSlots)
+        foreach (BattleMonster monster in
+                 Player.monsterSlots)
         {
             if (monster != null)
                 monster.RefreshForTurn();
+        }
+
+        // Supports future AI-cast area effects.
+        ProcessArrowRainFor(Player);
+
+        if (CheckVictory())
+        {
+            battleUI.Refresh();
+            return;
         }
 
         selectedHandIndex = -1;
@@ -865,7 +1324,9 @@ public class BattleManager : MonoBehaviour
         );
     }
 
+    // ===================================
     // AI TURN
+    // ===================================
 
     private void RunAITurn()
     {
@@ -878,22 +1339,26 @@ public class BattleManager : MonoBehaviour
 
         Opponent.DrawCard();
 
-        foreach (BattleMonster monster in Opponent.monsterSlots)
+        foreach (BattleMonster monster in
+                 Opponent.monsterSlots)
         {
             if (monster != null)
                 monster.RefreshForTurn();
         }
 
-        // SUMMON FIRST AFFORDABLE MONSTER
+        // AI SUMMONS FIRST AFFORDABLE MONSTER
 
         int emptySlot =
             Opponent.FirstEmptyMonsterSlot();
 
         if (emptySlot >= 0)
         {
-            for (int i = 0; i < Opponent.hand.Count; i++)
+            for (int i = 0;
+                 i < Opponent.hand.Count;
+                 i++)
             {
-                BattleCard card = Opponent.hand[i];
+                BattleCard card =
+                    Opponent.hand[i];
 
                 if (card == null ||
                     card.type != BattleCardType.Monster ||
@@ -901,7 +1366,8 @@ public class BattleManager : MonoBehaviour
                     continue;
 
                 int cost = Mathf.Max(
-                    0, card.monster.summonCost
+                    0,
+                    card.monster.summonCost
                 );
 
                 if (cost > Opponent.currentSP)
@@ -914,9 +1380,23 @@ public class BattleManager : MonoBehaviour
 
                 Opponent.hand.RemoveAt(i);
 
-                Message("AI summoned " + card.Name);
+                Message(
+                    "AI summoned " + card.Name
+                );
                 break;
             }
+        }
+
+        // NEW: SECOND ARROW RAIN WAVE.
+        // Occurs after summoning, before attacking.
+        // Newly summoned AI monsters can be hit.
+
+        ProcessArrowRainFor(Opponent);
+
+        if (CheckVictory())
+        {
+            battleUI.Refresh();
+            return;
         }
 
         // AI ATTACK PHASE
@@ -951,7 +1431,10 @@ public class BattleManager : MonoBehaviour
                     Player.monsterSlots[targetSlot];
 
                 int damage =
-                    CalculateMonsterDamage(attacker, defender);
+                    CalculateMonsterDamage(
+                        attacker,
+                        defender
+                    );
 
                 defender.TakeDamage(damage);
                 attacker.hasAttacked = true;
@@ -986,7 +1469,9 @@ public class BattleManager : MonoBehaviour
                 break;
         }
 
-        // AI DISCARD EXCESS CARDS
+        EndTimedEffectsFor(Opponent);
+
+        // AI HAND LIMIT
 
         while (Opponent.hand.Count > maximumHandSize)
         {
@@ -1003,10 +1488,15 @@ public class BattleManager : MonoBehaviour
         battleUI.Refresh();
     }
 
-    // VICTORY CHECKS
+    // ===================================
+    // WIN / LOSS
+    // ===================================
 
     private bool CheckVictory()
     {
+        if (Player == null || Opponent == null)
+            return false;
+
         if (Player.currentHP <= 0)
         {
             FinishBattle("AI wins!");
@@ -1033,7 +1523,9 @@ public class BattleManager : MonoBehaviour
         selectedHandIndex = -1;
         selectedAttackerIndex = -1;
 
-        Message("BATTLE OVER! " + result);
+        Message(
+            "BATTLE OVER! " + result
+        );
     }
 
     private void Message(string message)

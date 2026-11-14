@@ -23,24 +23,33 @@ public class BattleCardTooltip : MonoBehaviour
         canvas = GetComponentInParent<Canvas>();
 
         if (canvas == null && tooltipPanel != null)
-            canvas = tooltipPanel.GetComponentInParent<Canvas>();
+        {
+            canvas =
+                tooltipPanel.GetComponentInParent<Canvas>();
+        }
 
         if (canvas != null)
-            canvasRect = canvas.GetComponent<RectTransform>();
+        {
+            canvasRect =
+                canvas.GetComponent<RectTransform>();
+        }
 
         Hide();
     }
 
+    // KEEP TOOLTIP UPDATED WHILE HOVERING
+
     private void LateUpdate()
     {
-        if (hoveredMonster == null || hoveredCard == null)
+        if (hoveredMonster == null ||
+            hoveredCard == null)
             return;
 
         UpdateText();
         UpdatePosition();
     }
 
-    // SHOW TOOLTIP BESIDE A MONSTER
+    // SHOW MONSTER INFORMATION
 
     public void ShowMonster(
         BattleMonster monster,
@@ -49,7 +58,9 @@ public class BattleCardTooltip : MonoBehaviour
         if (monster == null ||
             cardRect == null ||
             tooltipPanel == null)
+        {
             return;
+        }
 
         hoveredMonster = monster;
         hoveredCard = cardRect;
@@ -68,7 +79,9 @@ public class BattleCardTooltip : MonoBehaviour
         hoveredCard = null;
 
         if (tooltipPanel != null)
+        {
             tooltipPanel.gameObject.SetActive(false);
+        }
     }
 
     // UPDATE MONSTER INFORMATION
@@ -77,9 +90,15 @@ public class BattleCardTooltip : MonoBehaviour
     {
         if (tooltipText == null ||
             hoveredMonster == null)
+        {
             return;
+        }
 
         BattleMonster monster = hoveredMonster;
+
+        // Uses the monster's live battle values.
+        // Attack includes temporary modifiers.
+        // Shield changes as damage is absorbed.
 
         tooltipText.text =
             monster.data.monsterName +
@@ -87,43 +106,57 @@ public class BattleCardTooltip : MonoBehaviour
             "/" + monster.MaxHP +
             "\nATK: " + monster.Attack +
             " | DEF: " + monster.Defence +
-            "\nINT: " + monster.data.intelligence;
+            "\nINT: " + monster.data.intelligence +
+            "\nSHIELD: " + monster.shield;
     }
 
-    // POSITION BESIDE THE CARD
+    // POSITION TOOLTIP BESIDE THE HOVERED CARD
 
     private void UpdatePosition()
     {
         if (canvasRect == null ||
             tooltipPanel == null ||
-            hoveredCard == null)
+            hoveredCard == null ||
+            canvas == null)
+        {
             return;
+        }
 
         Camera uiCamera = null;
 
         if (canvas.renderMode != RenderMode.ScreenSpaceOverlay)
+        {
             uiCamera = canvas.worldCamera;
+        }
 
-        
+        // Find the actual card position on screen.
+
         Vector3[] corners = new Vector3[4];
+
         hoveredCard.GetWorldCorners(corners);
 
         Vector2 bottomLeft =
             RectTransformUtility.WorldToScreenPoint(
-                uiCamera, corners[0]);
+                uiCamera,
+                corners[0]
+            );
 
         Vector2 topRight =
             RectTransformUtility.WorldToScreenPoint(
-                uiCamera, corners[2]);
+                uiCamera,
+                corners[2]
+            );
 
         float middleY =
             (bottomLeft.y + topRight.y) * 0.5f;
 
-        
-        Vector2 wantedScreenPoint = new Vector2(
-            topRight.x + horizontalOffset,
-            middleY
-        );
+        // First try positioning on the right.
+
+        Vector2 wantedScreenPoint =
+            new Vector2(
+                topRight.x + horizontalOffset,
+                middleY
+            );
 
         Vector2 localPoint;
 
@@ -133,20 +166,27 @@ public class BattleCardTooltip : MonoBehaviour
                 wantedScreenPoint,
                 uiCamera,
                 out localPoint))
+        {
             return;
+        }
 
-        
-        float halfWidth = tooltipPanel.rect.width * 0.5f;
-        float halfHeight = tooltipPanel.rect.height * 0.5f;
+        float halfWidth =
+            tooltipPanel.rect.width * 0.5f;
 
-        
+        float halfHeight =
+            tooltipPanel.rect.height * 0.5f;
+
+        // If there's no room on the right,
+        // move the tooltip to the left.
+
         if (localPoint.x + halfWidth >
             canvasRect.rect.xMax - screenPadding)
         {
-            Vector2 leftScreenPoint = new Vector2(
-                bottomLeft.x - horizontalOffset,
-                middleY
-            );
+            Vector2 leftScreenPoint =
+                new Vector2(
+                    bottomLeft.x - horizontalOffset,
+                    middleY
+                );
 
             Vector2 leftLocal;
 
@@ -157,7 +197,6 @@ public class BattleCardTooltip : MonoBehaviour
                     uiCamera,
                     out leftLocal))
             {
-                
                 localPoint.x =
                     leftLocal.x - halfWidth;
             }
@@ -167,16 +206,22 @@ public class BattleCardTooltip : MonoBehaviour
             localPoint.x += halfWidth;
         }
 
+        // Keep tooltip within visible canvas.
+
         localPoint.x = Mathf.Clamp(
             localPoint.x,
-            canvasRect.rect.xMin + halfWidth + screenPadding,
-            canvasRect.rect.xMax - halfWidth - screenPadding
+            canvasRect.rect.xMin +
+                halfWidth + screenPadding,
+            canvasRect.rect.xMax -
+                halfWidth - screenPadding
         );
 
         localPoint.y = Mathf.Clamp(
             localPoint.y,
-            canvasRect.rect.yMin + halfHeight + screenPadding,
-            canvasRect.rect.yMax - halfHeight - screenPadding
+            canvasRect.rect.yMin +
+                halfHeight + screenPadding,
+            canvasRect.rect.yMax -
+                halfHeight - screenPadding
         );
 
         tooltipPanel.anchoredPosition = localPoint;
