@@ -32,12 +32,19 @@ public class BattleUIController : MonoBehaviour
 
     [Header("Battle Controls")]
     [SerializeField] private Button endTurnButton;
-
-    [Header("Direct Attack Panel")]
     [SerializeField] private Button directAttackButton;
+
+    [Header("Card Interactions")]
+    [SerializeField] private BattleCardTooltip cardTooltip;
+    [SerializeField] private BattleCardPreview cardPreview;
+    [SerializeField] private BattleAttackArrow attackArrow;
 
     [Header("Optional Battle Messages")]
     [SerializeField] private TMP_Text statusText;
+
+    [Header("Hand Limit Warning")]
+    [SerializeField] private GameObject handLimitWarningPanel;
+    [SerializeField] private TMP_Text handLimitWarningText;
 
     private BattleSlotUI[] playerSlots;
     private BattleSlotUI[] opponentSlots;
@@ -65,6 +72,8 @@ public class BattleUIController : MonoBehaviour
             false
         );
 
+        // END TURN BUTTON
+
         if (endTurnButton != null)
         {
             endTurnButton.onClick.RemoveAllListeners();
@@ -73,6 +82,8 @@ public class BattleUIController : MonoBehaviour
                 manager.EndTurn
             );
         }
+
+        // DIRECT ATTACK BUTTON
 
         if (directAttackButton != null)
         {
@@ -84,6 +95,20 @@ public class BattleUIController : MonoBehaviour
 
             directAttackButton.gameObject.SetActive(false);
         }
+
+        // HIDE OPTIONAL UI
+
+        if (cardTooltip != null)
+            cardTooltip.Hide();
+
+        if (cardPreview != null)
+            cardPreview.Hide();
+
+        if (attackArrow != null)
+            attackArrow.StopArrow();
+
+        if (handLimitWarningPanel != null)
+            handLimitWarningPanel.SetActive(false);
 
         Debug.Log(
             "CardBorn Battle UI initialised!",
@@ -125,6 +150,7 @@ public class BattleUIController : MonoBehaviour
             }
 
             slot.ConfigurePrefab(monsterCardPrefab);
+            slot.ConfigureInteractions(this);
 
             slot.Initialize(
                 manager,
@@ -138,9 +164,9 @@ public class BattleUIController : MonoBehaviour
         if (slots.Length != 5)
         {
             Debug.LogWarning(
-                field.name +
-                " has " + slots.Length +
-                " buttons. Expected 5.",
+                field.name + " contains " +
+                slots.Length +
+                " monster buttons. Expected 5.",
                 this
             );
         }
@@ -148,7 +174,7 @@ public class BattleUIController : MonoBehaviour
         return slots;
     }
 
-    // REFRESH BATTLE UI
+    // REFRESH ALL BATTLE UI
 
     public void Refresh()
     {
@@ -163,79 +189,136 @@ public class BattleUIController : MonoBehaviour
             if (directAttackButton != null)
                 directAttackButton.gameObject.SetActive(false);
 
+            if (handLimitWarningPanel != null)
+                handLimitWarningPanel.SetActive(false);
+
             return;
         }
 
-        UpdateText(
+        // PLAYER STATS
+
+        SetText(
             playerHPText,
             "HP: " + player.currentHP
         );
 
-        UpdateText(
+        SetText(
             playerSPText,
             "SP: " + player.currentSP
         );
 
-        UpdateText(
+        SetText(
             playerDeckText,
             "Deck: " + player.deck.Count
         );
 
-        UpdateText(
+        SetText(
             playerGraveText,
             "Grave: " + player.graveyard.Count
         );
 
-        UpdateText(
+        // OPPONENT STATS
+
+        SetText(
             opponentHPText,
             "HP: " + opponent.currentHP
         );
 
-        UpdateText(
+        SetText(
             opponentSPText,
             "SP: " + opponent.currentSP
         );
 
-        UpdateText(
+        SetText(
             opponentDeckText,
             "Deck: " + opponent.deck.Count
         );
 
-        UpdateText(
+        SetText(
             opponentGraveText,
             "Grave: " + opponent.graveyard.Count
         );
 
+        // MONSTER CARD SLOTS
+
         RefreshMonsterRow(playerSlots, player);
         RefreshMonsterRow(opponentSlots, opponent);
 
+        // PLAYER HAND
+
         if (handUI != null)
-            handUI.ShowHand(player, manager);
+        {
+            handUI.ShowHand(
+                player,
+                manager
+            );
+        }
+
+        // END TURN BUTTON
 
         if (endTurnButton != null)
         {
             endTurnButton.interactable =
-                !manager.GameOver;
+                !manager.GameOver &&
+                !manager.IsDiscarding;
         }
 
+        // DIRECT ATTACK PANEL
+
         UpdateDirectAttackPanel();
+
+        // HAND LIMIT WARNING
+
+        UpdateHandLimitWarning();
     }
 
-    // SHOW RED DIRECT ATTACK TARGET
+    // HAND LIMIT WARNING PANEL
+
+    private void UpdateHandLimitWarning()
+    {
+        bool showWarning =
+            manager != null &&
+            manager.IsDiscarding &&
+            !manager.GameOver;
+
+        if (handLimitWarningPanel != null)
+        {
+            handLimitWarningPanel.SetActive(
+                showWarning
+            );
+        }
+
+        if (!showWarning)
+            return;
+
+        if (handLimitWarningText != null)
+        {
+            handLimitWarningText.text =
+                "HAND LIMIT EXCEEDED!\n" +
+                "Click a card in your hand to discard.";
+        }
+    }
+
+    // DIRECT ATTACK PANEL
 
     private void UpdateDirectAttackPanel()
     {
         if (directAttackButton == null)
             return;
 
-        bool available = manager != null &&
-                         manager.CanDirectAttack;
+        bool available =
+            manager != null &&
+            manager.CanDirectAttack &&
+            !manager.IsDiscarding;
 
-        directAttackButton.gameObject.SetActive(available);
+        directAttackButton.gameObject.SetActive(
+            available
+        );
+
         directAttackButton.interactable = available;
     }
 
-    // REFRESH MONSTER DISPLAYS
+    // REFRESH MONSTER SLOTS
 
     private void RefreshMonsterRow(
         BattleSlotUI[] slots,
@@ -252,23 +335,92 @@ public class BattleUIController : MonoBehaviour
             BattleMonster monster = null;
 
             if (i < player.monsterSlots.Length)
+            {
                 monster = player.monsterSlots[i];
+            }
 
             slots[i].Refresh(monster);
         }
     }
 
-    // UPDATE TMP TEXT
+    // MONSTER HOVER TOOLTIP
 
-    private void UpdateText(
-        TMP_Text label,
-        string value)
+    public void ShowMonsterTooltip(
+        BattleMonster monster,
+        RectTransform cardRect)
     {
-        if (label != null)
-            label.text = value;
+        if (cardTooltip != null)
+        {
+            cardTooltip.ShowMonster(
+                monster,
+                cardRect
+            );
+        }
     }
 
-    // STATUS MESSAGES
+    public void HideMonsterTooltip()
+    {
+        if (cardTooltip != null)
+            cardTooltip.Hide();
+    }
+
+    // LARGE MONSTER PREVIEW
+
+    public void OpenMonsterPreview(
+        BattleMonster monster)
+    {
+        HideMonsterTooltip();
+
+        if (cardPreview != null)
+        {
+            cardPreview.ShowMonster(monster);
+        }
+    }
+
+    // RED ATTACK ARROW
+
+    public void BeginAttackArrow(
+        RectTransform source)
+    {
+        if (attackArrow != null)
+        {
+            attackArrow.BeginArrow(source);
+        }
+    }
+
+    public void StopAttackArrow()
+    {
+        if (attackArrow != null)
+            attackArrow.StopArrow();
+    }
+
+    // CHECK DIRECT ATTACK TARGET
+
+    public bool IsDirectAttackTarget(
+        GameObject target)
+    {
+        if (directAttackButton == null ||
+            target == null)
+            return false;
+
+        Transform buttonTransform =
+            directAttackButton.transform;
+
+        return target.transform == buttonTransform ||
+               target.transform.IsChildOf(buttonTransform);
+    }
+
+    // SAFE TEXT UPDATE
+
+    private void SetText(
+        TMP_Text textComponent,
+        string value)
+    {
+        if (textComponent != null)
+            textComponent.text = value;
+    }
+
+    // GENERAL BATTLE MESSAGES
 
     public void ShowMessage(string message)
     {

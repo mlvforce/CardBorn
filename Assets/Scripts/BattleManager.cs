@@ -8,32 +8,55 @@ public class BattleManager : MonoBehaviour
     [SerializeField] private BattleDeckLoader deckLoader;
     [SerializeField] private BattleUIController battleUI;
 
+    [Header("Graveyard Spell UI")]
+    [SerializeField] private BattleGraveyardUI graveyardUI;
+
     [Header("Starting Rules")]
     [SerializeField] private int startingPlayerHP = 100;
     [SerializeField] private int startingSP = 20;
     [SerializeField] private int spPerTurn = 10;
     [SerializeField] private int openingHandSize = 5;
 
+    [Header("Battle Rules")]
+    [SerializeField, Min(1)] private int maximumHandSize = 7;
+    [SerializeField, Min(1)] private int maximumSP = 100;
+
     public BattlePlayer Player { get; private set; }
     public BattlePlayer Opponent { get; private set; }
-
     public bool GameOver { get; private set; }
+    public bool IsDiscarding { get; private set; }
 
     private int selectedHandIndex = -1;
     private int selectedAttackerIndex = -1;
 
-    // DIRECT ATTACK AVAILABILITY
+    public int SelectedHandIndex => selectedHandIndex;
+
+    public bool HasPendingSpell
+    {
+        get
+        {
+            if (GameOver || IsDiscarding || Player == null)
+                return false;
+
+            if (selectedHandIndex < 0 ||
+                selectedHandIndex >= Player.hand.Count)
+                return false;
+
+            BattleCard card = Player.hand[selectedHandIndex];
+
+            return card != null &&
+                   card.type == BattleCardType.Spell &&
+                   card.spell != null;
+        }
+    }
 
     public bool CanDirectAttack
     {
         get
         {
-            if (GameOver ||
-                Player == null ||
-                Opponent == null)
-                return false;
-
-            if (Opponent.HasMonsters())
+            if (GameOver || IsDiscarding ||
+                Player == null || Opponent == null ||
+                Opponent.HasMonsters())
                 return false;
 
             if (selectedAttackerIndex < 0 ||
@@ -59,7 +82,7 @@ public class BattleManager : MonoBehaviour
         if (deckLoader == null || battleUI == null)
         {
             Debug.LogError(
-                "BattleManager: Assign Deck Loader and Battle UI!",
+                "BattleManager: Missing DeckLoader or BattleUI.",
                 this
             );
             return;
@@ -71,12 +94,12 @@ public class BattleManager : MonoBehaviour
         List<BattleCard> enemyCards =
             deckLoader.LoadAIDeck();
 
-        if (playerCards.Count < openingHandSize ||
+        if (playerCards == null || enemyCards == null ||
+            playerCards.Count < openingHandSize ||
             enemyCards.Count < openingHandSize)
         {
             Debug.LogError(
-                "Battle: Both decks need at least " +
-                openingHandSize + " valid cards.",
+                "Both decks need enough valid cards.",
                 this
             );
             return;
@@ -86,17 +109,18 @@ public class BattleManager : MonoBehaviour
             "Player",
             playerCards,
             startingPlayerHP,
-            startingSP
+            Mathf.Clamp(startingSP, 0, maximumSP)
         );
 
         Opponent = new BattlePlayer(
             "AI Opponent",
             enemyCards,
             startingPlayerHP,
-            startingSP
+            Mathf.Clamp(startingSP, 0, maximumSP)
         );
 
         GameOver = false;
+        IsDiscarding = false;
         selectedHandIndex = -1;
         selectedAttackerIndex = -1;
 
@@ -108,74 +132,385 @@ public class BattleManager : MonoBehaviour
         battleUI.Setup();
         battleUI.Refresh();
 
-        Message("Your turn! Select a card to begin.");
+        Message("Battle started! Your turn.");
     }
 
-    // SELECT A CARD FROM HAND
+    // SELECT HAND CARD
 
     public void SelectHandCard(int index)
     {
-        if (GameOver || Player == null)
+        if (GameOver || Player == null ||
+            index < 0 || index >= Player.hand.Count)
             return;
 
-        if (index < 0 || index >= Player.hand.Count)
+        if (IsDiscarding)
+        {
+            DiscardHandCard(index);
             return;
+        }
 
         BattleCard card = Player.hand[index];
 
+        if (card == null)
+            return;
+
+        if (graveyardUI != null)
+            graveyardUI.Close();
+
+        selectedHandIndex = index;
         selectedAttackerIndex = -1;
 
         if (card.type == BattleCardType.Spell)
         {
-            selectedHandIndex = -1;
-
-            Message(
-                card.Name +
-                ": Spell casting will be added after " +
-                "basic monster combat."
-            );
-
-            battleUI.Refresh();
-            return;
+            SelectSpellCard(card);
         }
-
-        if (card.monster == null)
-            return;
-
-        selectedHandIndex = index;
-
-        Message(
-            "Selected " + card.Name +
-            ". Click an empty friendly monster slot " +
-            "to summon it. Cost: " +
-            card.monster.summonCost + " SP."
-        );
+        else if (card.type == BattleCardType.Monster &&
+                 card.monster != null)
+        {
+            Message(
+                "Selected " + card.Name +
+                ". Click an empty monster slot to summon. " +
+                "Cost: " + card.monster.summonCost + " SP."
+            );
+        }
 
         battleUI.Refresh();
     }
 
+    // SELECT SPELL
+
+    private void SelectSpellCard(BattleCard card)
+    {
+        if (card.spell == null)
+        {
+            selectedHandIndex = -1;
+            return;
+        }
+
+        SpellData spell = card.spell;
+
+        if (!CanMeetSpellRequirement(spell))
+        {
+            Message(
+                spell.spellName +
+                " requires a living friendly monster with " +
+                spell.requiredInt + " INT."
+            );
+            return;
+        }
+
+        // SOUL REBORN
+
+        if (spell.effectType ==
+            SpellEffectType.ReturnMonsterToHand)
+        {
+            int available = 0;
+
+            foreach (BattleCard graveCard in Player.graveyard)
+            {
+                if (graveCard != null &&
+                    graveCard.type == BattleCardType.Monster &&
+                    graveCard.monster != null)
+                {
+                    available++;
+                }
+            }
+
+            if (available == 0)
+            {
+                Message(
+                    "Soul Reborn: No monsters in your graveyard."
+                );
+                return;
+            }
+
+            if (Player.hand.Count > maximumHandSize)
+            {
+                Message(
+                    "Reduce your hand to " +
+                    maximumHandSize +
+                    " cards before casting Soul Reborn."
+                );
+                return;
+            }
+
+            if (graveyardUI == null)
+            {
+                Message(
+                    "Assign BattleGraveyardUI to BattleManager."
+                );
+                return;
+            }
+
+            graveyardUI.Open(this);
+
+            Message(
+                "Soul Reborn: Choose a monster from your graveyard."
+            );
+            return;
+        }
+
+        // FIRE BALL / HEALING LIGHT
+
+        if (spell.effectType == SpellEffectType.Damage ||
+            spell.effectType == SpellEffectType.Heal)
+        {
+            Message(
+                spell.spellName +
+                " selected. Choose a monster target."
+            );
+        }
+        else
+        {
+            Message(
+                spell.spellName +
+                " is not implemented in combat yet."
+            );
+        }
+    }
+
+    // CHECK INT REQUIREMENT
+
+    private bool CanMeetSpellRequirement(SpellData spell)
+    {
+        return spell != null &&
+               Player != null &&
+               Player.HasMonsters() &&
+               Player.HighestMonsterINT() >= spell.requiredInt;
+    }
+
+    // SOUL REBORN
+
+    public bool TryReturnMonsterFromGrave(int graveIndex)
+    {
+        if (GameOver || IsDiscarding ||
+            Player == null || !HasPendingSpell)
+            return false;
+
+        BattleCard spellCard =
+            Player.hand[selectedHandIndex];
+
+        SpellData spell = spellCard.spell;
+
+        if (spell.effectType !=
+            SpellEffectType.ReturnMonsterToHand)
+            return false;
+
+        if (!CanMeetSpellRequirement(spell))
+        {
+            Message(
+                "Soul Reborn: INT requirement not met."
+            );
+            return false;
+        }
+
+        if (Player.hand.Count > maximumHandSize)
+        {
+            Message(
+                "Too many cards in hand to cast Soul Reborn."
+            );
+            return false;
+        }
+
+        if (graveIndex < 0 ||
+            graveIndex >= Player.graveyard.Count)
+            return false;
+
+        BattleCard recovered =
+            Player.graveyard[graveIndex];
+
+        if (recovered == null ||
+            recovered.type != BattleCardType.Monster ||
+            recovered.monster == null)
+            return false;
+
+        // Remove the defeated monster from the grave.
+        Player.graveyard.RemoveAt(graveIndex);
+
+        // Consume Soul Reborn.
+        Player.hand.RemoveAt(selectedHandIndex);
+
+        // Return the monster to the hand.
+        Player.hand.Add(recovered);
+
+        // Soul Reborn enters the graveyard.
+        Player.graveyard.Add(spellCard);
+
+        selectedHandIndex = -1;
+        selectedAttackerIndex = -1;
+
+        if (graveyardUI != null)
+            graveyardUI.Close();
+
+        battleUI.Refresh();
+
+        Message(
+            "Soul Reborn returned " +
+            recovered.Name +
+            " to your hand. Normal summoning SP applies."
+        );
+
+        return true;
+    }
+
+    // CAST DAMAGE / HEALING SPELL
+
+    public bool TryCastSelectedSpellOn(
+        bool targetIsFriendly,
+        int targetSlot)
+    {
+        if (!HasPendingSpell)
+            return false;
+
+        SpellData spell =
+            Player.hand[selectedHandIndex].spell;
+
+        // Soul Reborn uses the graveyard instead.
+        if (spell.effectType ==
+            SpellEffectType.ReturnMonsterToHand)
+            return true;
+
+        if (!CanMeetSpellRequirement(spell))
+        {
+            Message(
+                "Cannot cast. INT requirement not met."
+            );
+            return true;
+        }
+
+        BattlePlayer targetOwner =
+            targetIsFriendly ? Player : Opponent;
+
+        if (targetOwner == null ||
+            targetSlot < 0 ||
+            targetSlot >= targetOwner.monsterSlots.Length)
+            return true;
+
+        BattleMonster target =
+            targetOwner.monsterSlots[targetSlot];
+
+        if (target == null || target.currentHP <= 0)
+        {
+            Message("Select a living monster target.");
+            return true;
+        }
+
+        if (!IsValidSpellTarget(spell, targetIsFriendly))
+        {
+            Message("Invalid spell target.");
+            return true;
+        }
+
+        switch (spell.effectType)
+        {
+            case SpellEffectType.Damage:
+                {
+                    int damage = Mathf.Max(
+                        0, spell.effectStrength
+                    );
+
+                    // True damage ignores DEF.
+                    // BattleMonster.TakeDamage handles shields.
+                    int oldHP = target.currentHP;
+                    int oldShield = target.shield;
+
+                    target.TakeDamage(damage);
+
+                    Message(
+                        spell.spellName + " dealt " +
+                        damage + " damage to " +
+                        target.data.monsterName + "."
+                    );
+
+                    if (target.currentHP <= 0)
+                        DefeatMonster(targetOwner, targetSlot);
+
+                    break;
+                }
+
+            case SpellEffectType.Heal:
+                {
+                    int oldHP = target.currentHP;
+
+                    target.Heal(spell.effectStrength);
+
+                    int healed = target.currentHP - oldHP;
+
+                    Message(
+                        spell.spellName + " restored " +
+                        healed + " HP to " +
+                        target.data.monsterName + "."
+                    );
+
+                    break;
+                }
+
+            default:
+                {
+                    Message(
+                        "This spell effect is not implemented yet."
+                    );
+                    return true;
+                }
+        }
+
+        BattleCard usedCard =
+            Player.hand[selectedHandIndex];
+
+        Player.hand.RemoveAt(selectedHandIndex);
+        Player.graveyard.Add(usedCard);
+
+        selectedHandIndex = -1;
+        selectedAttackerIndex = -1;
+
+        CheckVictory();
+        battleUI.Refresh();
+
+        return true;
+    }
+
+    private bool IsValidSpellTarget(
+        SpellData spell,
+        bool targetIsFriendly)
+    {
+        switch (spell.targetType)
+        {
+            case SpellTargetType.FriendlyMonster:
+                return targetIsFriendly;
+
+            case SpellTargetType.EnemyMonster:
+                return !targetIsFriendly;
+
+            case SpellTargetType.AnyMonster:
+                return true;
+
+            default:
+                return false;
+        }
+    }
+
     // SELECT A FIELD SLOT
 
-    public void SelectMonsterSlot(
-        bool isPlayer,
-        int index)
+    public void SelectMonsterSlot(bool isPlayer, int index)
     {
-        if (GameOver || Player == null || Opponent == null)
+        if (GameOver || IsDiscarding ||
+            Player == null || Opponent == null)
             return;
 
-        BattlePlayer targetPlayer =
+        if (TryCastSelectedSpellOn(isPlayer, index))
+            return;
+
+        BattlePlayer owner =
             isPlayer ? Player : Opponent;
 
         if (index < 0 ||
-            index >= targetPlayer.monsterSlots.Length)
+            index >= owner.monsterSlots.Length)
             return;
 
-        BattleMonster target =
-            targetPlayer.monsterSlots[index];
+        BattleMonster target = owner.monsterSlots[index];
 
         if (isPlayer)
         {
-            // Summon selected hand monster.
             if (selectedHandIndex >= 0 && target == null)
             {
                 SummonPlayerMonster(index);
@@ -191,82 +526,50 @@ public class BattleManager : MonoBehaviour
                 {
                     selectedAttackerIndex = index;
 
-                    if (Opponent.HasMonsters())
-                    {
-                        Message(
-                            "Selected " +
-                            target.data.monsterName +
-                            ". Click an enemy monster to attack!"
-                        );
-                    }
-                    else
-                    {
-                        Message(
-                            "Selected " +
-                            target.data.monsterName +
-                            ". The opponent has no monsters. " +
-                            "Click the red DIRECT ATTACK panel!"
-                        );
-                    }
+                    Message(
+                        Opponent.HasMonsters()
+                        ? "Select an enemy monster to attack."
+                        : "Direct attack available!"
+                    );
                 }
                 else
                 {
-                    Message(
-                        target.data.monsterName +
-                        " cannot attack yet or has already attacked."
-                    );
+                    Message("This monster cannot attack yet.");
                 }
             }
 
-            // Important: updates the red target immediately.
             battleUI.Refresh();
             return;
         }
 
-        // Enemy slot selection.
         if (target != null && selectedAttackerIndex >= 0)
-        {
             AttackEnemyMonster(index);
-        }
-        else if (target != null)
-        {
-            Message(
-                "Enemy monster: " + target.data.monsterName +
-                " | HP: " + target.currentHP +
-                "/" + target.MaxHP
-            );
-        }
     }
 
     // SUMMON MONSTER
 
     private void SummonPlayerMonster(int slot)
     {
-        if (selectedHandIndex < 0 ||
+        if (IsDiscarding || selectedHandIndex < 0 ||
             selectedHandIndex >= Player.hand.Count)
             return;
 
         BattleCard card = Player.hand[selectedHandIndex];
 
         if (card.type != BattleCardType.Monster ||
-            card.monster == null)
+            card.monster == null ||
+            Player.monsterSlots[slot] != null)
             return;
 
         int cost = Mathf.Max(
-            0,
-            card.monster.summonCost
+            0, card.monster.summonCost
         );
 
         if (Player.currentSP < cost)
         {
-            Message(
-                "Not enough SP to summon " + card.Name
-            );
+            Message("Not enough SP to summon " + card.Name);
             return;
         }
-
-        if (Player.monsterSlots[slot] != null)
-            return;
 
         Player.currentSP -= cost;
 
@@ -280,17 +583,75 @@ public class BattleManager : MonoBehaviour
 
         Message(
             card.Name +
-            " summoned! It must wait until your next turn to attack."
+            " summoned! It can attack next turn."
         );
 
         battleUI.Refresh();
+    }
+
+    // PREPARE ATTACK DRAGGING
+
+    public bool PrepareAttacker(int slotIndex)
+    {
+        if (GameOver || IsDiscarding ||
+            Player == null || Opponent == null)
+            return false;
+
+        if (slotIndex < 0 ||
+            slotIndex >= Player.monsterSlots.Length)
+            return false;
+
+        BattleMonster attacker =
+            Player.monsterSlots[slotIndex];
+
+        if (attacker == null || !attacker.CanAttack())
+            return false;
+
+        selectedHandIndex = -1;
+        selectedAttackerIndex = slotIndex;
+
+        if (graveyardUI != null)
+            graveyardUI.Close();
+
+        battleUI.Refresh();
+        return true;
+    }
+
+    public void CancelAttackSelection()
+    {
+        selectedAttackerIndex = -1;
+
+        battleUI.Refresh();
+    }
+
+    // DEF DAMAGE CALCULATION
+
+    private int CalculateMonsterDamage(
+        BattleMonster attacker,
+        BattleMonster defender)
+    {
+        if (attacker == null || defender == null)
+            return 0;
+
+        float attack = Mathf.Max(0, attacker.Attack);
+        float defence = Mathf.Max(0, defender.Defence);
+
+        float result =
+            attack * (100f / (100f + defence));
+
+        return Mathf.Max(1, Mathf.CeilToInt(result));
     }
 
     // ATTACK ENEMY MONSTER
 
     private void AttackEnemyMonster(int enemySlot)
     {
-        if (selectedAttackerIndex < 0)
+        if (GameOver || IsDiscarding ||
+            selectedAttackerIndex < 0)
+            return;
+
+        if (enemySlot < 0 ||
+            enemySlot >= Opponent.monsterSlots.Length)
             return;
 
         BattleMonster attacker =
@@ -304,16 +665,13 @@ public class BattleManager : MonoBehaviour
 
         if (!attacker.CanAttack())
         {
-            Message("This monster cannot attack yet.");
             selectedAttackerIndex = -1;
             battleUI.Refresh();
             return;
         }
 
-        int damage = Mathf.Max(
-            1,
-            attacker.Attack - defender.Defence
-        );
+        int damage =
+            CalculateMonsterDamage(attacker, defender);
 
         defender.TakeDamage(damage);
         attacker.hasAttacked = true;
@@ -322,7 +680,7 @@ public class BattleManager : MonoBehaviour
             attacker.data.monsterName +
             " attacked " +
             defender.data.monsterName +
-            " for " + damage + " damage!"
+            " for " + damage + " damage."
         );
 
         if (defender.currentHP <= 0)
@@ -340,10 +698,7 @@ public class BattleManager : MonoBehaviour
     {
         if (!CanDirectAttack)
         {
-            Message(
-                "Direct attack is not currently available."
-            );
-            battleUI.Refresh();
+            Message("Direct attack is unavailable.");
             return;
         }
 
@@ -359,20 +714,18 @@ public class BattleManager : MonoBehaviour
 
         attacker.hasAttacked = true;
 
-        selectedAttackerIndex = -1;
         selectedHandIndex = -1;
+        selectedAttackerIndex = -1;
 
         Message(
-            attacker.data.monsterName +
-            " directly attacked the opponent for " +
-            damage + " damage!"
+            "Direct attack dealt " + damage + " damage!"
         );
 
         CheckVictory();
         battleUI.Refresh();
     }
 
-    // MOVE DEFEATED MONSTER TO GRAVEYARD
+    // DEFEATED MONSTERS
 
     private void DefeatMonster(
         BattlePlayer owner,
@@ -387,37 +740,112 @@ public class BattleManager : MonoBehaviour
         owner.monsterSlots[slot] = null;
 
         Message(
-            monster.data.monsterName +
-            " was defeated!"
+            monster.data.monsterName + " was defeated!"
         );
     }
 
-    // END PLAYER TURN
+    // END TURN / DISCARD RULE
 
     public void EndTurn()
     {
         if (GameOver || Player == null)
             return;
 
+        if (graveyardUI != null)
+            graveyardUI.Close();
+
+        if (IsDiscarding)
+        {
+            Message(
+                "Discard until your hand contains " +
+                maximumHandSize + " cards."
+            );
+            return;
+        }
+
+        selectedHandIndex = -1;
+        selectedAttackerIndex = -1;
+
+        if (Player.hand.Count > maximumHandSize)
+        {
+            IsDiscarding = true;
+
+            battleUI.Refresh();
+
+            Message(
+                "HAND LIMIT! Click " +
+                (Player.hand.Count - maximumHandSize) +
+                " card(s) to discard."
+            );
+
+            return;
+        }
+
+        CompleteEndTurn();
+    }
+
+    private void DiscardHandCard(int index)
+    {
+        if (!IsDiscarding || Player == null ||
+            index < 0 || index >= Player.hand.Count)
+            return;
+
+        BattleCard discardedCard =
+            Player.hand[index];
+
+        Player.hand.RemoveAt(index);
+        Player.graveyard.Add(discardedCard);
+
         selectedHandIndex = -1;
         selectedAttackerIndex = -1;
 
         battleUI.Refresh();
 
-        RunAITurn();
+        if (Player.hand.Count > maximumHandSize)
+        {
+            Message(
+                "Discarded " + discardedCard.Name +
+                ". Choose " +
+                (Player.hand.Count - maximumHandSize) +
+                " more card(s) to discard."
+            );
+            return;
+        }
 
+        IsDiscarding = false;
+
+        Message("Hand limit satisfied. Ending turn.");
+
+        CompleteEndTurn();
+    }
+
+    private void CompleteEndTurn()
+    {
         if (GameOver)
             return;
 
-        StartPlayerTurn();
+        selectedHandIndex = -1;
+        selectedAttackerIndex = -1;
+
+        RunAITurn();
+
+        if (!GameOver)
+            StartPlayerTurn();
+        else
+            battleUI.Refresh();
     }
 
-    // BEGIN PLAYER TURN
+    // START PLAYER TURN
 
     private void StartPlayerTurn()
     {
         Player.turnsStarted++;
-        Player.currentSP += spPerTurn;
+
+        Player.currentSP = Mathf.Min(
+            maximumSP,
+            Player.currentSP + spPerTurn
+        );
+
         Player.DrawCard();
 
         foreach (BattleMonster monster in Player.monsterSlots)
@@ -431,15 +859,23 @@ public class BattleManager : MonoBehaviour
 
         battleUI.Refresh();
 
-        Message("Your turn!");
+        Message(
+            "Your turn! SP: " +
+            Player.currentSP + "/" + maximumSP
+        );
     }
 
-    // BASIC AI OPPONENT
+    // AI TURN
 
     private void RunAITurn()
     {
         Opponent.turnsStarted++;
-        Opponent.currentSP += spPerTurn;
+
+        Opponent.currentSP = Mathf.Min(
+            maximumSP,
+            Opponent.currentSP + spPerTurn
+        );
+
         Opponent.DrawCard();
 
         foreach (BattleMonster monster in Opponent.monsterSlots)
@@ -448,8 +884,10 @@ public class BattleManager : MonoBehaviour
                 monster.RefreshForTurn();
         }
 
-        // AI summons the first affordable monster.
-        int emptySlot = Opponent.FirstEmptyMonsterSlot();
+        // SUMMON FIRST AFFORDABLE MONSTER
+
+        int emptySlot =
+            Opponent.FirstEmptyMonsterSlot();
 
         if (emptySlot >= 0)
         {
@@ -457,13 +895,13 @@ public class BattleManager : MonoBehaviour
             {
                 BattleCard card = Opponent.hand[i];
 
-                if (card.type != BattleCardType.Monster ||
+                if (card == null ||
+                    card.type != BattleCardType.Monster ||
                     card.monster == null)
                     continue;
 
                 int cost = Mathf.Max(
-                    0,
-                    card.monster.summonCost
+                    0, card.monster.summonCost
                 );
 
                 if (cost > Opponent.currentSP)
@@ -481,18 +919,24 @@ public class BattleManager : MonoBehaviour
             }
         }
 
-        // AI attacks with eligible monsters.
-        for (int i = 0; i < Opponent.monsterSlots.Length; i++)
+        // AI ATTACK PHASE
+
+        for (int i = 0;
+             i < Opponent.monsterSlots.Length;
+             i++)
         {
             BattleMonster attacker =
                 Opponent.monsterSlots[i];
 
-            if (attacker == null || !attacker.CanAttack())
+            if (attacker == null ||
+                !attacker.CanAttack())
                 continue;
 
             int targetSlot = -1;
 
-            for (int j = 0; j < Player.monsterSlots.Length; j++)
+            for (int j = 0;
+                 j < Player.monsterSlots.Length;
+                 j++)
             {
                 if (Player.monsterSlots[j] != null)
                 {
@@ -506,10 +950,8 @@ public class BattleManager : MonoBehaviour
                 BattleMonster defender =
                     Player.monsterSlots[targetSlot];
 
-                int damage = Mathf.Max(
-                    1,
-                    attacker.Attack - defender.Defence
-                );
+                int damage =
+                    CalculateMonsterDamage(attacker, defender);
 
                 defender.TakeDamage(damage);
                 attacker.hasAttacked = true;
@@ -535,8 +977,8 @@ public class BattleManager : MonoBehaviour
                 attacker.hasAttacked = true;
 
                 Message(
-                    "AI dealt " + damage +
-                    " direct damage!"
+                    "AI dealt " +
+                    damage + " direct damage!"
                 );
             }
 
@@ -544,10 +986,24 @@ public class BattleManager : MonoBehaviour
                 break;
         }
 
+        // AI DISCARD EXCESS CARDS
+
+        while (Opponent.hand.Count > maximumHandSize)
+        {
+            int lastIndex =
+                Opponent.hand.Count - 1;
+
+            BattleCard discarded =
+                Opponent.hand[lastIndex];
+
+            Opponent.hand.RemoveAt(lastIndex);
+            Opponent.graveyard.Add(discarded);
+        }
+
         battleUI.Refresh();
     }
 
-    // CHECK WINNER
+    // VICTORY CHECKS
 
     private bool CheckVictory()
     {
@@ -568,20 +1024,23 @@ public class BattleManager : MonoBehaviour
 
     private void FinishBattle(string result)
     {
+        if (graveyardUI != null)
+            graveyardUI.Close();
+
         GameOver = true;
+        IsDiscarding = false;
+
         selectedHandIndex = -1;
         selectedAttackerIndex = -1;
 
         Message("BATTLE OVER! " + result);
     }
 
-    // STATUS MESSAGES
-
-    private void Message(string text)
+    private void Message(string message)
     {
         if (battleUI != null)
-            battleUI.ShowMessage(text);
+            battleUI.ShowMessage(message);
         else
-            Debug.Log(text);
+            Debug.Log(message);
     }
 }

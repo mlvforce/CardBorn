@@ -1,15 +1,24 @@
 
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-public class BattleSlotUI : MonoBehaviour
+public class BattleSlotUI : MonoBehaviour,
+    IPointerEnterHandler,
+    IPointerExitHandler,
+    IPointerClickHandler,
+    IBeginDragHandler,
+    IDragHandler,
+    IEndDragHandler
 {
     private Button slotButton;
     private Image slotImage;
     private TMP_Text slotLabel;
 
     private BattleManager manager;
+    private BattleUIController battleUI;
+
     private bool isPlayerSlot;
     private int slotIndex;
 
@@ -20,15 +29,23 @@ public class BattleSlotUI : MonoBehaviour
 
     private Color originalColor;
     private bool initialized;
+    private bool draggingAttack;
 
-    // ASSIGN PREFAB
+    // PREFAB REFERENCE
 
     public void ConfigurePrefab(GameObject prefab)
     {
         monsterPrefab = prefab;
     }
 
-    // INITIALISE SLOT
+    // UI CONTROLLER REFERENCE
+
+    public void ConfigureInteractions(BattleUIController ui)
+    {
+        battleUI = ui;
+    }
+
+    // INITIALISE BATTLE SLOT
 
     public void Initialize(
         BattleManager battleManager,
@@ -45,17 +62,17 @@ public class BattleSlotUI : MonoBehaviour
         if (slotButton == null)
         {
             Debug.LogError(
-                "BattleSlotUI requires a Button!",
+                "BattleSlotUI requires a Button component!",
                 this
             );
             return;
         }
 
-        if (slotLabel == null)
-            slotLabel = GetComponentInChildren<TMP_Text>(true);
-
         if (!initialized)
         {
+            slotLabel =
+                GetComponentInChildren<TMP_Text>(true);
+
             originalColor = slotImage != null
                 ? slotImage.color
                 : Color.white;
@@ -63,11 +80,13 @@ public class BattleSlotUI : MonoBehaviour
             initialized = true;
         }
 
+        // We handle clicks using IPointerClickHandler.
         slotButton.onClick.RemoveAllListeners();
-        slotButton.onClick.AddListener(OnClicked);
+        slotButton.transition =
+            Selectable.Transition.None;
     }
 
-    // DISPLAY CURRENT MONSTER
+    // REFRESH THE BATTLEFIELD CARD
 
     public void Refresh(BattleMonster monster)
     {
@@ -77,7 +96,6 @@ public class BattleSlotUI : MonoBehaviour
         if (monster == null)
         {
             ClearVisual();
-
             displayedMonster = null;
 
             if (slotLabel != null)
@@ -111,36 +129,25 @@ public class BattleSlotUI : MonoBehaviour
             slotLabel.text = "";
 
         if (slotImage != null)
-        {
-           
-            slotImage.color = new Color(1, 1, 1, 0);
-        }
+            slotImage.color = originalColor;
     }
 
-    // CREATE MONSTER CARD
+    // CREATE MONSTER PREFAB
 
     private void CreateMonsterVisual(BattleMonster monster)
     {
         if (monsterPrefab == null)
         {
-            Debug.LogWarning(
-                "BattleSlotUI: No monster card prefab assigned.",
-                this
-            );
-
             if (slotLabel != null)
-            {
-                slotLabel.text =
-                    monster.data.monsterName +
-                    "\nHP: " + monster.currentHP;
-            }
+                slotLabel.text = monster.data.monsterName;
 
             return;
         }
 
         currentVisual = Instantiate(
             monsterPrefab,
-            transform
+            transform,
+            false
         );
 
         currentVisual.name =
@@ -161,8 +168,10 @@ public class BattleSlotUI : MonoBehaviour
             view.SetBattleHealth(monster.currentHP);
         }
 
-        FitToSlot(currentVisual);
+        FitCardToSlot(currentVisual);
 
+        // All clicks should pass through the visual
+        // and reach the battlefield slot underneath.
         foreach (Graphic graphic in
             currentVisual.GetComponentsInChildren<Graphic>(true))
         {
@@ -172,13 +181,16 @@ public class BattleSlotUI : MonoBehaviour
         foreach (Button button in
             currentVisual.GetComponentsInChildren<Button>(true))
         {
-            button.interactable = false;
+            button.transition =
+                Selectable.Transition.None;
+
+            button.enabled = false;
         }
     }
 
-    // FIT CARD TO THE EXISTING SLOT
+    // SCALE CARD WITHOUT DISTORTION
 
-    private void FitToSlot(GameObject visual)
+    private void FitCardToSlot(GameObject visual)
     {
         RectTransform slotRect =
             GetComponent<RectTransform>();
@@ -192,18 +204,30 @@ public class BattleSlotUI : MonoBehaviour
         float width = cardRect.rect.width;
         float height = cardRect.rect.height;
 
-        if (width <= 1f) width = 422f;
-        if (height <= 1f) height = 478f;
+        if (width <= 1f)
+            width = 422f;
 
-        cardRect.anchorMin = new Vector2(0.5f, 0.5f);
-        cardRect.anchorMax = new Vector2(0.5f, 0.5f);
-        cardRect.pivot = new Vector2(0.5f, 0.5f);
+        if (height <= 1f)
+            height = 478f;
+
+        cardRect.anchorMin =
+            new Vector2(0.5f, 0.5f);
+
+        cardRect.anchorMax =
+            new Vector2(0.5f, 0.5f);
+
+        cardRect.pivot =
+            new Vector2(0.5f, 0.5f);
 
         cardRect.SetSizeWithCurrentAnchors(
-            RectTransform.Axis.Horizontal, width);
+            RectTransform.Axis.Horizontal,
+            width
+        );
 
         cardRect.SetSizeWithCurrentAnchors(
-            RectTransform.Axis.Vertical, height);
+            RectTransform.Axis.Vertical,
+            height
+        );
 
         cardRect.anchoredPosition = Vector2.zero;
         cardRect.localRotation = Quaternion.identity;
@@ -217,7 +241,7 @@ public class BattleSlotUI : MonoBehaviour
             new Vector3(scale, scale, 1f);
     }
 
-    // REMOVE CARD WHEN DEFEATED
+    // REMOVE CARD WHEN MONSTER LEAVES FIELD
 
     private void ClearVisual()
     {
@@ -229,16 +253,177 @@ public class BattleSlotUI : MonoBehaviour
         }
     }
 
-    // CLICK SLOT
+    // HOVER OVER A MONSTER
 
-    private void OnClicked()
+    public void OnPointerEnter(
+        PointerEventData eventData)
     {
-        if (manager != null)
+        if (displayedMonster == null ||
+            battleUI == null)
+            return;
+
+        // NEW: Pass the actual card slot position,
+        // so the tooltip can appear beside it.
+        battleUI.ShowMonsterTooltip(
+            displayedMonster,
+            GetComponent<RectTransform>()
+        );
+    }
+
+    // STOP HOVERING
+
+    public void OnPointerExit(
+        PointerEventData eventData)
+    {
+        if (battleUI != null)
+            battleUI.HideMonsterTooltip();
+    }
+
+    // CLICK A FIELD SLOT
+
+    public void OnPointerClick(
+        PointerEventData eventData)
+    {
+        if (eventData.button !=
+            PointerEventData.InputButton.Left)
+            return;
+
+        if (manager == null)
+            return;
+
+        // FIRST: Handle selected spell targeting.
+        // This works for occupied friendly/enemy slots.
+        if (manager.TryCastSelectedSpellOn(
+            isPlayerSlot,
+            slotIndex))
+        {
+            return;
+        }
+
+        // SECOND: Inspect an existing monster.
+        if (displayedMonster != null)
+        {
+            if (battleUI != null)
+            {
+                battleUI.OpenMonsterPreview(
+                    displayedMonster
+                );
+            }
+
+            return;
+        }
+
+        // THIRD: Summon to an empty friendly slot.
+        if (isPlayerSlot)
         {
             manager.SelectMonsterSlot(
-                isPlayerSlot,
+                true,
                 slotIndex
             );
+        }
+    }
+
+    // BEGIN DRAGGING A MONSTER ATTACK
+
+    public void OnBeginDrag(
+        PointerEventData eventData)
+    {
+        draggingAttack = false;
+
+        if (!isPlayerSlot ||
+            displayedMonster == null ||
+            manager == null ||
+            battleUI == null)
+            return;
+
+        if (eventData.button !=
+            PointerEventData.InputButton.Left)
+            return;
+
+        if (manager.GameOver ||
+            !displayedMonster.CanAttack())
+            return;
+
+        // This also cancels a selected hand spell
+        // when the player intentionally attacks.
+        if (!manager.PrepareAttacker(slotIndex))
+            return;
+
+        draggingAttack = true;
+
+        battleUI.HideMonsterTooltip();
+
+        battleUI.BeginAttackArrow(
+            GetComponent<RectTransform>()
+        );
+    }
+
+    // ARROW FOLLOWS THE MOUSE
+
+    public void OnDrag(PointerEventData eventData)
+    {
+        // BattleAttackArrow handles cursor movement.
+    }
+
+    // RELEASE OVER AN ENEMY OR DIRECT ATTACK TARGET
+
+    public void OnEndDrag(
+        PointerEventData eventData)
+    {
+        if (!draggingAttack)
+            return;
+
+        draggingAttack = false;
+
+        if (battleUI != null)
+            battleUI.StopAttackArrow();
+
+        GameObject targetObject =
+            eventData.pointerCurrentRaycast.gameObject;
+
+        bool completedAttack = false;
+
+        if (targetObject != null && manager != null)
+        {
+            BattleSlotUI targetSlot =
+                targetObject.GetComponentInParent<BattleSlotUI>();
+
+            // MONSTER VERSUS MONSTER ATTACK
+            if (targetSlot != null &&
+                !targetSlot.isPlayerSlot &&
+                targetSlot.displayedMonster != null)
+            {
+                manager.SelectMonsterSlot(
+                    false,
+                    targetSlot.slotIndex
+                );
+
+                completedAttack = true;
+            }
+
+            // DIRECT ATTACK
+            else if (battleUI != null &&
+                     battleUI.IsDirectAttackTarget(targetObject) &&
+                     manager.CanDirectAttack)
+            {
+                manager.AttackOpponentDirectly();
+                completedAttack = true;
+            }
+        }
+
+        // INVALID TARGET: CANCEL ATTACK
+        if (!completedAttack && manager != null)
+            manager.CancelAttackSelection();
+    }
+
+    private void OnDisable()
+    {
+        draggingAttack = false;
+
+        if (battleUI != null)
+        {
+            battleUI.HideMonsterTooltip();
+            battleUI.StopAttackArrow();
         }
     }
 }
