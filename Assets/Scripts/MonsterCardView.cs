@@ -28,9 +28,7 @@ public class MonsterCardView : MonoBehaviour
 
     private MonsterData currentMonster;
 
-    // =========================================
     // DISPLAY MONSTER INFORMATION
-    // =========================================
 
     public void DisplayMonster(
         MonsterData monster,
@@ -40,26 +38,20 @@ public class MonsterCardView : MonoBehaviour
         if (monster == null)
         {
             Debug.LogWarning(
-                "MonsterCardView: Monster data is null."
+                "MonsterCardView: Monster data is null.",
+                this
             );
             return;
         }
 
         currentMonster = monster;
 
-        // MONSTER NAME
         if (monsterNameText != null)
-        {
             monsterNameText.text = monster.monsterName;
-        }
 
-        // HEALTH
         if (healthText != null)
-        {
             healthText.text = "Health: " + monster.health;
-        }
 
-        // SUMMON COST
         if (summonCostText != null)
         {
             summonCostText.text =
@@ -67,26 +59,18 @@ public class MonsterCardView : MonoBehaviour
                 monster.summonCost + " SP";
         }
 
-        // ATTACK
         if (attackText != null)
-        {
             attackText.text = "ATK: " + monster.attack;
-        }
 
-        // DEFENCE
         if (defenceText != null)
-        {
             defenceText.text = "DEF: " + monster.defence;
-        }
 
-        // INTELLIGENCE
         if (intelligenceText != null)
         {
             intelligenceText.text =
                 "INT: " + monster.intelligence;
         }
 
-        // EFFECT DESCRIPTIONS
         if (effectsText != null)
         {
             effectsText.text =
@@ -95,38 +79,62 @@ public class MonsterCardView : MonoBehaviour
                 : CleanEffectText(effectDescription);
         }
 
-        // OPTIONAL IN-DECK INDICATOR
         if (inDeckText != null)
-        {
-            inDeckText.text = isInDeck
-                ? "IN DECK"
-                : "";
-
-        }
-
-        // OPTIONAL MONSTER PORTRAIT
-        // The appearance portrait can be
-        // implemented later.
+            inDeckText.text = isInDeck ? "IN DECK" : "";
     }
 
-    // =========================================
+    // COMPACT CARD MODE
+
+    public void SetCompact(bool compact)
+    {
+        
+
+        SetVisible(effectsText, !compact);
+        SetVisible(attackText, !compact);
+        SetVisible(defenceText, !compact);
+        SetVisible(intelligenceText, !compact);
+
+        if (compact)
+        {
+            SetVisible(inDeckText, false);
+        }
+        else
+        {
+            SetVisible(inDeckText, true);
+        }
+    }
+
+    // UPDATE BATTLE HP WITHOUT CHANGING SAVED DATA
+
+    public void SetBattleHealth(int currentHP)
+    {
+        if (healthText == null || currentMonster == null)
+            return;
+
+        healthText.text =
+            "HP: " + currentHP +
+            "/" + currentMonster.health;
+    }
+
+    private void SetVisible(
+        TMP_Text textComponent,
+        bool visible)
+    {
+        if (textComponent != null)
+            textComponent.gameObject.SetActive(visible);
+    }
+
     // CLEAN EFFECT TEXT FORMATTING
-    // =========================================
 
     private string CleanEffectText(string text)
     {
         if (string.IsNullOrWhiteSpace(text))
             return "No effects equipped.";
 
-        // Standardise line endings.
         text = text.Replace("\r\n", "\n");
         text = text.Replace("\r", "\n");
-
-        // Remove whitespace at the beginning/end.
         text = text.Trim();
 
-        // Remove repeated blank lines while
-        // preserving one blank line between effects.
         string[] lines = text.Split('\n');
 
         System.Text.StringBuilder result =
@@ -156,9 +164,7 @@ public class MonsterCardView : MonoBehaviour
         return result.ToString().Trim();
     }
 
-    // =========================================
     // ACCESS CURRENT MONSTER
-    // =========================================
 
     public MonsterData GetMonster()
     {

@@ -1392,6 +1392,7 @@ GameObject:
   - component: {fileID: 346183584}
   - component: {fileID: 346183586}
   - component: {fileID: 346183585}
+  - component: {fileID: 346183587}
   m_Layer: 5
   m_Name: Player_hand_panel
   m_TagString: Untagged
@@ -1457,6 +1458,22 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 346183583}
   m_CullTransparentMesh: 1
+--- !u!114 &346183587
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 346183583}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b89386abc2b4f9342a924d23467605be, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  handContent: {fileID: 462139291}
+  monsterCardPrefab: {fileID: 2461220016674798507, guid: 9b18d806e732c9944b9550773adbd217, type: 3}
+  spellCardPrefab: {fileID: 7460078986220538603, guid: 69a40079177ebaa44b86d457e1da4575, type: 3}
+  cardSize: {x: 120, y: 160}
 --- !u!1 &377452564
 GameObject:
   m_ObjectHideFlags: 0
@@ -2326,6 +2343,142 @@ CanvasRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 490285794}
+  m_CullTransparentMesh: 1
+--- !u!1 &579447994
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 579447995}
+  - component: {fileID: 579447997}
+  - component: {fileID: 579447996}
+  m_Layer: 5
+  m_Name: Text (TMP)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &579447995
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 579447994}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 853505498}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 0, y: 0}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &579447996
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 579447994}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_Material: {fileID: 0}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_text: DIRECT ATTACK
+  m_isRightToLeft: 0
+  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontSharedMaterials: []
+  m_fontMaterial: {fileID: 0}
+  m_fontMaterials: []
+  m_fontColor32:
+    serializedVersion: 2
+    rgba: 4294967295
+  m_fontColor: {r: 1, g: 1, b: 1, a: 1}
+  m_enableVertexGradient: 0
+  m_colorMode: 3
+  m_fontColorGradient:
+    topLeft: {r: 1, g: 1, b: 1, a: 1}
+    topRight: {r: 1, g: 1, b: 1, a: 1}
+    bottomLeft: {r: 1, g: 1, b: 1, a: 1}
+    bottomRight: {r: 1, g: 1, b: 1, a: 1}
+  m_fontColorGradientPreset: {fileID: 0}
+  m_spriteAsset: {fileID: 0}
+  m_tintAllSprites: 0
+  m_StyleSheet: {fileID: 0}
+  m_TextStyleHashCode: -1183493901
+  m_overrideHtmlColors: 0
+  m_faceColor:
+    serializedVersion: 2
+    rgba: 4294967295
+  m_fontSize: 35
+  m_fontSizeBase: 24
+  m_fontWeight: 400
+  m_enableAutoSizing: 1
+  m_fontSizeMin: 18
+  m_fontSizeMax: 35
+  m_fontStyle: 0
+  m_HorizontalAlignment: 2
+  m_VerticalAlignment: 512
+  m_textAlignment: 65535
+  m_characterSpacing: 0
+  m_wordSpacing: 0
+  m_lineSpacing: 0
+  m_lineSpacingMax: 0
+  m_paragraphSpacing: 0
+  m_charWidthMaxAdj: 0
+  m_TextWrappingMode: 1
+  m_wordWrappingRatios: 0.4
+  m_overflowMode: 0
+  m_linkedTextComponent: {fileID: 0}
+  parentLinkedComponent: {fileID: 0}
+  m_enableKerning: 0
+  m_ActiveFontFeatures: 6e72656b
+  m_enableExtraPadding: 0
+  checkPaddingRequired: 0
+  m_isRichText: 1
+  m_EmojiFallbackSupport: 1
+  m_parseCtrlCharacters: 1
+  m_isOrthographic: 1
+  m_isCullingEnabled: 0
+  m_horizontalMapping: 0
+  m_verticalMapping: 0
+  m_uvLineOffset: 0
+  m_geometrySortingOrder: 0
+  m_IsTextObjectScaleStatic: 0
+  m_VertexBufferAutoSizeReduction: 0
+  m_useMaxVisibleDescender: 1
+  m_pageToDisplay: 1
+  m_margin: {x: 0, y: 0, z: 0, w: 0}
+  m_isUsingLegacyAnimationComponent: 0
+  m_isVolumetricText: 0
+  m_hasFontAssetChanged: 0
+  m_baseMaterial: {fileID: 0}
+  m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
+--- !u!222 &579447997
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 579447994}
   m_CullTransparentMesh: 1
 --- !u!1 &579591818
 GameObject:
@@ -3714,7 +3867,7 @@ GameObject:
   - component: {fileID: 809871229}
   - component: {fileID: 809871228}
   m_Layer: 5
-  m_Name: Text (TMP)
+  m_Name: Opp_Grave_TMP
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -4094,6 +4247,127 @@ CanvasRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 850089707}
+  m_CullTransparentMesh: 1
+--- !u!1 &853505497
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 853505498}
+  - component: {fileID: 853505501}
+  - component: {fileID: 853505500}
+  - component: {fileID: 853505499}
+  m_Layer: 5
+  m_Name: Direct_Attack_Panel
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 0
+--- !u!224 &853505498
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 853505497}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 579447995}
+  m_Father: {fileID: 1449543080}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: -6.3335, y: 205}
+  m_SizeDelta: {x: 472.3592, y: 144.1511}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &853505499
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 853505497}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4e29b1a8efbd4b44bb3f3716e73f07ff, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_Navigation:
+    m_Mode: 3
+    m_WrapAround: 0
+    m_SelectOnUp: {fileID: 0}
+    m_SelectOnDown: {fileID: 0}
+    m_SelectOnLeft: {fileID: 0}
+    m_SelectOnRight: {fileID: 0}
+  m_Transition: 1
+  m_Colors:
+    m_NormalColor: {r: 0.9372549, g: 0, b: 0, a: 0.78039217}
+    m_HighlightedColor: {r: 0.9339623, g: 0.4273318, b: 0.4273318, a: 1}
+    m_PressedColor: {r: 0.9372549, g: 0, b: 0, a: 1}
+    m_SelectedColor: {r: 0.9372549, g: 0, b: 0, a: 1}
+    m_DisabledColor: {r: 0.9372549, g: 0, b: 0, a: 0.5019608}
+    m_ColorMultiplier: 1
+    m_FadeDuration: 0.1
+  m_SpriteState:
+    m_HighlightedSprite: {fileID: 0}
+    m_PressedSprite: {fileID: 0}
+    m_SelectedSprite: {fileID: 0}
+    m_DisabledSprite: {fileID: 0}
+  m_AnimationTriggers:
+    m_NormalTrigger: Normal
+    m_HighlightedTrigger: Highlighted
+    m_PressedTrigger: Pressed
+    m_SelectedTrigger: Selected
+    m_DisabledTrigger: Disabled
+  m_Interactable: 1
+  m_TargetGraphic: {fileID: 853505500}
+  m_OnClick:
+    m_PersistentCalls:
+      m_Calls: []
+--- !u!114 &853505500
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 853505497}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_Material: {fileID: 0}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_Sprite: {fileID: 10905, guid: 0000000000000000f000000000000000, type: 0}
+  m_Type: 1
+  m_PreserveAspect: 0
+  m_FillCenter: 1
+  m_FillMethod: 4
+  m_FillAmount: 1
+  m_FillClockwise: 1
+  m_FillOrigin: 0
+  m_UseSpriteMesh: 0
+  m_PixelsPerUnitMultiplier: 1
+--- !u!222 &853505501
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 853505497}
   m_CullTransparentMesh: 1
 --- !u!1 &873356407
 GameObject:
@@ -5826,7 +6100,7 @@ GameObject:
   - component: {fileID: 1323514796}
   - component: {fileID: 1323514795}
   m_Layer: 5
-  m_Name: Text (TMP)
+  m_Name: Player_grave_TMP
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -6405,6 +6679,9 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1377651862}
+  - component: {fileID: 1377651865}
+  - component: {fileID: 1377651864}
+  - component: {fileID: 1377651863}
   m_Layer: 0
   m_Name: Battle_Manager
   m_TagString: Untagged
@@ -6427,6 +6704,180 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1377651863
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1377651861}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 559a2ed417982e744a2406b1c2cbacce, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  manager: {fileID: 1377651865}
+  playerHPText: {fileID: 1493248632}
+  playerSPText: {fileID: 877878066}
+  playerDeckText: {fileID: 2072022319}
+  playerGraveText: {fileID: 1323514795}
+  opponentHPText: {fileID: 377452566}
+  opponentSPText: {fileID: 185708029}
+  opponentDeckText: {fileID: 1403596012}
+  opponentGraveText: {fileID: 809871228}
+  playerMonsterField: {fileID: 1778059746}
+  opponentMonsterField: {fileID: 1577014087}
+  monsterCardPrefab: {fileID: 0}
+  handUI: {fileID: 346183587}
+  endTurnButton: {fileID: 490285796}
+  directAttackButton: {fileID: 853505499}
+  statusText: {fileID: 0}
+--- !u!114 &1377651864
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1377651861}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 90488ca1e71f8324495da64d4a5b5fff, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  spellLibrary: {fileID: 1401669993}
+  playerDeckSlot: 0
+  aiDeckSlot: 2
+--- !u!114 &1377651865
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1377651861}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 79a5aec54a9e7ae459fcf0b1d0c57484, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  deckLoader: {fileID: 1377651864}
+  battleUI: {fileID: 1377651863}
+  startingPlayerHP: 100
+  startingSP: 30
+  spPerTurn: 10
+  openingHandSize: 5
+--- !u!1 &1401669992
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1401669994}
+  - component: {fileID: 1401669993}
+  m_Layer: 0
+  m_Name: Spell_Library
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1401669993
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1401669992}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9074218b255958a4ba79dda4f8874a12, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  spells:
+  - spellId: fireball
+    spellName: Fire Ball
+    description: 'Once This Card Is Played Deal 25 Damage To Any Monster Of Casters
+      Choice : Requires A Friendly Monster On Field With 25 INT'
+    requiredInt: 25
+    effectType: 0
+    targetType: 3
+    effectStrength: 25
+    durationTurns: 1
+    spellArtwork: {fileID: 0}
+    maximumCopies: 3
+  - spellId: healing light
+    spellName: Healing Light
+    description: 'Once This Card Is Played Restore 20 HP To A Friendly Monster. The
+      Health Gained Cannot Exceed The Monsters Original Max HP : Requires A Friendly
+      Monster On Field With 20 INT '
+    requiredInt: 20
+    effectType: 1
+    targetType: 1
+    effectStrength: 20
+    durationTurns: 1
+    spellArtwork: {fileID: 0}
+    maximumCopies: 3
+  - spellId: soul reborn
+    spellName: Soul Reborn
+    description: 'Once This Card Is Played Select 1 Monster From Your Grave Pile
+      Return That Monster To Your Hand : Requires A Friendly Monster On Field With
+      45 INT '
+    requiredInt: 45
+    effectType: 5
+    targetType: 1
+    effectStrength: 0
+    durationTurns: 1
+    spellArtwork: {fileID: 0}
+    maximumCopies: 3
+  - spellId: arrow rain
+    spellName: Arrow Rain
+    description: 'Once This Card Is Played Enemy Monsters Take 15 Damage For 2 Turns
+      : Requires A Friendly Monster On Field With 50 INT '
+    requiredInt: 50
+    effectType: 6
+    targetType: 5
+    effectStrength: 15
+    durationTurns: 2
+    spellArtwork: {fileID: 0}
+    maximumCopies: 3
+  - spellId: weaking fog
+    spellName: Weaking Fog
+    description: 'Once This Card Is Played All Enemy Monsters Lose 10 Attack For
+      2 Turns : Requires A Friendly Monster On Field With 50 INT '
+    requiredInt: 50
+    effectType: 3
+    targetType: 5
+    effectStrength: 10
+    durationTurns: 2
+    spellArtwork: {fileID: 0}
+    maximumCopies: 3
+  - spellId: arcane shield
+    spellName: Arcane Shield
+    description: 'Once This Card Is Played Pick One Monster To Gain 25 Sheild Once
+      For 2 Turns: Requires A Friendly Monster On Field With 35 INT '
+    requiredInt: 35
+    effectType: 2
+    targetType: 3
+    effectStrength: 25
+    durationTurns: 2
+    spellArtwork: {fileID: 0}
+    maximumCopies: 3
+--- !u!4 &1401669994
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1401669992}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 524.73663, y: 256.86792, z: 40.433563}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1403596010
 GameObject:
   m_ObjectHideFlags: 0
@@ -6439,7 +6890,7 @@ GameObject:
   - component: {fileID: 1403596013}
   - component: {fileID: 1403596012}
   m_Layer: 5
-  m_Name: Text (TMP)
+  m_Name: Opp_deck_TMP
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -7023,6 +7474,7 @@ RectTransform:
   - {fileID: 597920713}
   - {fileID: 193930191}
   - {fileID: 579591819}
+  - {fileID: 853505498}
   m_Father: {fileID: 1135943218}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
@@ -9559,7 +10011,7 @@ GameObject:
   - component: {fileID: 2072022320}
   - component: {fileID: 2072022319}
   m_Layer: 5
-  m_Name: Text (TMP)
+  m_Name: Player_Deck_TMP
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -10054,6 +10506,7 @@ SceneRoots:
   - {fileID: 592509018}
   - {fileID: 1455459386}
   - {fileID: 1377651862}
+  - {fileID: 1401669994}
   - {fileID: 1135943218}
   - {fileID: 212267010}
   - {fileID: 5803769467880880083}
